@@ -1,0 +1,358 @@
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+const AddNewStockForm = ({ onInventoryAdded }) => {
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // Form state
+  const [formData, setFormData] = useState({
+    product_id: "",
+    cases_qty: 0,
+    bottles_qty: 0,
+    total_bottles: 0,
+    total_value: 0,
+    notes: "",
+  });
+
+  // Selected product details for calculation
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
+  // Fetch all products for dropdown
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true);
+        const response = await axios.get(`${API_URL}/products`);
+        setProducts(response.data);
+      } catch (err) {
+        setError("Failed to fetch products");
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Handle product selection change
+  const handleProductChange = (e) => {
+    const productId = e.target.value;
+    setFormData({
+      ...formData,
+      product_id: productId,
+      cases_qty: 0,
+      bottles_qty: 0,
+      total_bottles: 0,
+      total_value: 0,
+      notes: "",
+    });
+
+    if (productId) {
+      const product = products.find(
+        (p) => p.product_id.toString() === productId
+      );
+      setSelectedProduct(product);
+    } else {
+      setSelectedProduct(null);
+    }
+  };
+
+  // Calculate total bottles and value when cases or bottles change
+  const handleQuantityChange = (e) => {
+    const { name, value } = e.target;
+    const numValue = parseInt(value) || 0;
+
+    let updatedFormData = {
+      ...formData,
+      [name]: numValue,
+    };
+
+    if (selectedProduct) {
+      // Calculate total bottles
+      const bottlesPerCase = selectedProduct.bottles_per_case || 0;
+      const totalBottles =
+        updatedFormData.cases_qty * bottlesPerCase +
+        updatedFormData.bottles_qty;
+
+      // Calculate total value
+      const totalValue = totalBottles * selectedProduct.unit_price;
+
+      updatedFormData = {
+        ...updatedFormData,
+        total_bottles: totalBottles,
+        total_value: totalValue,
+      };
+    }
+
+    setFormData(updatedFormData);
+  };
+
+  // Handle notes change
+  const handleNotesChange = (e) => {
+    setFormData({
+      ...formData,
+      notes: e.target.value,
+    });
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!formData.product_id) {
+      setError("Please select a product");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      setSuccessMessage("");
+
+      const response = await axios.post(`${API_URL}/stock-inventory`, formData);
+
+      if (response.status === 201) {
+        setSuccessMessage("Stock added successfully!");
+        // Reset form
+        setFormData({
+          product_id: "",
+          cases_qty: 0,
+          bottles_qty: 0,
+          total_bottles: 0,
+          total_value: 0,
+          notes: "",
+        });
+        setSelectedProduct(null);
+
+        // Call the parent callback to refresh inventory data
+        if (onInventoryAdded) {
+          onInventoryAdded();
+        }
+      }
+    } catch (err) {
+      setError(
+        "Failed to add inventory: " +
+          (err.response?.data?.message || err.message)
+      );
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <h2 className="text-xl font-semibold mb-6">Add Stock</h2>
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {error}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+          {successMessage}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Product Selection */}
+          <div className="col-span-2">
+            <label
+              htmlFor="product_id"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Select Product
+            </label>
+            <div className="relative">
+              <select
+                id="product_id"
+                name="product_id"
+                value={formData.product_id}
+                onChange={handleProductChange}
+                className="appearance-none block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                disabled={isLoading}
+              >
+                <option value="">Select a product</option>
+                {products.map((product) => (
+                  <option key={product.product_id} value={product.product_id}>
+                    {product.product_name} - {product.size}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                <svg
+                  className="fill-current h-4 w-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {selectedProduct && (
+            <>
+              {/* Product Details */}
+              <div className="col-span-2 p-4 bg-gray-50 rounded-md mb-2">
+                <h3 className="font-medium text-gray-700 mb-2">
+                  Product Details
+                </h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500">Unit Price:</span> Rs.
+                    {selectedProduct.unit_price.toFixed(2)}
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Bottles per Case:</span>{" "}
+                    {selectedProduct.bottles_per_case}
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Selling Price:</span> Rs.
+                    {selectedProduct.selling_price.toFixed(2)}
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Size:</span>{" "}
+                    {selectedProduct.size}
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-500">Current Stock:</span>{" "}
+                    {selectedProduct.cases_qty || 0} cases,{" "}
+                    {selectedProduct.bottles_qty || 0} bottles (
+                    {selectedProduct.total_bottles || 0} total bottles)
+                  </div>
+                </div>
+              </div>
+
+              {/* Cases Quantity */}
+              <div>
+                <label
+                  htmlFor="cases_qty"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Cases to Add
+                </label>
+                <input
+                  type="number"
+                  id="cases_qty"
+                  name="cases_qty"
+                  min="0"
+                  value={formData.cases_qty}
+                  onChange={handleQuantityChange}
+                  className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  disabled={isLoading}
+                />
+              </div>
+
+              {/* Bottles Quantity */}
+              <div>
+                <label
+                  htmlFor="bottles_qty"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Loose Bottles to Add
+                </label>
+                <input
+                  type="number"
+                  id="bottles_qty"
+                  name="bottles_qty"
+                  min="0"
+                  value={formData.bottles_qty}
+                  onChange={handleQuantityChange}
+                  className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  disabled={isLoading}
+                />
+              </div>
+
+              {/* Total Bottles (Calculated) */}
+              <div>
+                <label
+                  htmlFor="total_bottles"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Total Bottles to Add
+                </label>
+                <input
+                  type="number"
+                  id="total_bottles"
+                  name="total_bottles"
+                  value={formData.total_bottles}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 shadow-sm focus:outline-none"
+                  disabled
+                />
+              </div>
+
+              {/* Total Value (Calculated) */}
+              <div>
+                <label
+                  htmlFor="total_value"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Total Value to Add
+                </label>
+                <input
+                  type="number"
+                  id="total_value"
+                  name="total_value"
+                  value={formData.total_value.toFixed(2)}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 shadow-sm focus:outline-none"
+                  disabled
+                />
+              </div>
+
+              {/* Notes */}
+              <div className="col-span-2">
+                <label
+                  htmlFor="notes"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Transaction Notes
+                </label>
+                <textarea
+                  id="notes"
+                  name="notes"
+                  rows="3"
+                  value={formData.notes}
+                  onChange={handleNotesChange}
+                  placeholder="Enter any notes about this stock addition (e.g., delivery reference, supplier)"
+                  className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  disabled={isLoading}
+                ></textarea>
+              </div>
+            </>
+          )}
+
+          {/* Submit Button */}
+          <div className="col-span-2 mt-4">
+            <button
+              type="submit"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-400 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              disabled={
+                isLoading ||
+                !selectedProduct ||
+                (formData.cases_qty === 0 && formData.bottles_qty === 0)
+              }
+            >
+              {isLoading ? "Adding..." : "Add Stock"}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default AddNewStockForm;

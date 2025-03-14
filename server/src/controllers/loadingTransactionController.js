@@ -2,6 +2,7 @@ const db = require("../models");
 const LoadingTransaction = db.LoadingTransaction;
 const LoadingDetail = db.LoadingDetail;
 const StockInventory = db.StockInventory;
+const InventoryTransaction = db.InventoryTransaction;
 
 exports.getAllLoadingTransactions = async (req, res) => {
   try {
@@ -106,6 +107,24 @@ exports.createLoadingTransaction = async (req, res) => {
             total_bottles: newTotalBottles,
             total_value: newTotalValue,
             last_updated: new Date(),
+          },
+          { transaction: dbTransaction }
+        );
+
+        // Record the transaction regardless of whether it's a new or existing inventory
+        await InventoryTransaction.create(
+          {
+            product_id: detail.product_id,
+            transaction_type: "REMOVE", // Both are ADD but logically different
+            cases_qty: detail.cases_loaded,
+            bottles_qty: detail.bottles_loaded,
+            total_bottles:
+              detail.cases_loaded * bottlesPerCase + detail.bottles_loaded,
+            total_value:
+              (detail.cases_loaded * bottlesPerCase + detail.bottles_loaded) *
+              valuePerBottle,
+            notes: "Loading transaction",
+            transaction_date: new Date(),
           },
           { transaction: dbTransaction }
         );

@@ -1,4 +1,5 @@
 import React from "react";
+import { useLocation } from "react-router-dom";
 import {
   Squares2X2Icon,
   CubeIcon,
@@ -10,39 +11,49 @@ import {
 } from "@heroicons/react/24/outline";
 
 const Sidebar = () => {
+  const location = useLocation();
+
   const menuItems = [
     {
       icon: <Squares2X2Icon className="w-5 h-5" />,
       label: "Dashboard",
-      active: true,
+      url: "/dashboard",
     },
     {
       icon: <CubeIcon className="w-5 h-5" />,
       label: "Stock",
-      hasDropdown: true,
+      url: "/inventory-management",
     },
     {
       icon: <TruckIcon className="w-5 h-5" />,
       label: "Loading",
       hasDropdown: true,
+      url: "/loading-management",
     },
     {
       icon: <DocumentChartBarIcon className="w-5 h-5" />,
       label: "Reports",
       hasDropdown: true,
+      url: "/reports",
     },
     {
       icon: <UserGroupIcon className="w-5 h-5" />,
       label: "Manage",
       hasDropdown: true,
+      url: "/manage",
     },
   ];
 
   const bottomMenuItems = [
-    { icon: <QuestionMarkCircleIcon className="w-5 h-5" />, label: "Help" },
+    {
+      icon: <QuestionMarkCircleIcon className="w-5 h-5" />,
+      label: "Help",
+      url: "/help",
+    },
     {
       icon: <ArrowRightOnRectangleIcon className="w-5 h-5" />,
       label: "Logout",
+      url: "/logout",
     },
   ];
 
@@ -57,36 +68,42 @@ const Sidebar = () => {
 
       <nav className="flex-1">
         <ul>
-          {menuItems.map((item, index) => (
-            <li key={index}>
-              <a
-                href="#"
-                className={`flex items-center px-4 py-3 hover:bg-gray-100 ${
-                  item.active ? "bg-gray-100" : ""
-                }`}
-              >
-                <span className="mr-3">{item.icon}</span>
-                <span>{item.label}</span>
-                {item.hasDropdown && (
-                  <span className="ml-auto">
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </span>
-                )}
-              </a>
-            </li>
-          ))}
+          {menuItems.map((item, index) => {
+            const isActive = location.pathname === item.url;
+
+            return (
+              <li key={index}>
+                <a
+                  href={item.url}
+                  className={`flex items-center px-4 py-3 hover:bg-gray-100 rounded-r-lg transition ${
+                    isActive
+                      ? "bg-blue-100 text-blue-600 font-semibold"
+                      : "text-gray-700"
+                  }`}
+                >
+                  <span className="mr-3">{item.icon}</span>
+                  <span>{item.label}</span>
+                  {item.hasDropdown && (
+                    <span className="ml-auto">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </span>
+                  )}
+                </a>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 
@@ -95,7 +112,7 @@ const Sidebar = () => {
           {bottomMenuItems.map((item, index) => (
             <li key={index}>
               <a
-                href="#"
+                href={item.url}
                 className="flex items-center px-4 py-3 hover:bg-gray-100"
               >
                 <span className="mr-3">{item.icon}</span>

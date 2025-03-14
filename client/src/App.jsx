@@ -7,6 +7,10 @@ import { AuthProvider } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
+import InventoryManagementPage from "./pages/InventoryManagementPage";
+import LoadingManagementPage from "./pages/LoadingManagementPage";
+import ReportsPage from "./pages/ReportsPage";
+import ManagePage from "./pages/ManagePage";
 
 const AppLayout = ({ children }) => (
   <div className="flex h-screen bg-blue-1">
@@ -35,6 +39,38 @@ const App = () => {
               element={
                 <AppLayout>
                   <Dashboard />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/inventory-management"
+              element={
+                <AppLayout>
+                  <InventoryManagementPage />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/loading-management"
+              element={
+                <AppLayout>
+                  <LoadingManagementPage />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/reports"
+              element={
+                <AppLayout>
+                  <ReportsPage />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/manage"
+              element={
+                <AppLayout>
+                  <ManagePage />
                 </AppLayout>
               }
             />

@@ -1,5 +1,6 @@
 const db = require("../models");
 const StockInventory = db.StockInventory;
+const InventoryTransaction = db.InventoryTransaction;
 
 exports.getAllStockInventory = async (req, res) => {
   try {
@@ -28,7 +29,10 @@ exports.getStockInventoryById = async (req, res) => {
   }
 };
 
+// Update your stock inventory controller
 exports.createStockInventory = async (req, res) => {
+  const transaction = await db.sequelize.transaction();
+
   try {
     const {
       product_id,
@@ -36,31 +40,69 @@ exports.createStockInventory = async (req, res) => {
       bottles_qty,
       total_bottles,
       total_value,
-      last_updated,
+      notes,
     } = req.body;
 
     // Check if inventory for this product already exists
-    const existingInventory = await StockInventory.findOne({
+    let existingInventory = await StockInventory.findOne({
       where: { product_id },
+      transaction,
     });
 
+    // Record the transaction regardless of whether it's a new or existing inventory
+    const inventoryTransaction = await InventoryTransaction.create(
+      {
+        product_id,
+        transaction_type: existingInventory ? "ADD" : "ADD", // Both are ADD but logically different
+        cases_qty,
+        bottles_qty,
+        total_bottles,
+        total_value,
+        notes,
+        transaction_date: new Date(),
+      },
+      { transaction }
+    );
+
+    // If inventory exists, update it by adding the new quantities
     if (existingInventory) {
-      return res.status(400).json({
-        message: `Inventory for product ID ${product_id} already exists. Use update endpoint instead.`,
-      });
+      existingInventory = await existingInventory.update(
+        {
+          cases_qty: existingInventory.cases_qty + parseInt(cases_qty),
+          bottles_qty: existingInventory.bottles_qty + parseInt(bottles_qty),
+          total_bottles:
+            existingInventory.total_bottles + parseInt(total_bottles),
+          total_value:
+            parseFloat(existingInventory.total_value) + parseFloat(total_value),
+          last_updated: new Date(),
+        },
+        { transaction }
+      );
+    } else {
+      // If inventory doesn't exist, create a new one
+      existingInventory = await StockInventory.create(
+        {
+          product_id,
+          cases_qty,
+          bottles_qty,
+          total_bottles,
+          total_value,
+          last_updated: new Date(),
+        },
+        { transaction }
+      );
     }
 
-    const newStockInventory = await StockInventory.create({
-      product_id,
-      cases_qty,
-      bottles_qty,
-      total_bottles,
-      total_value,
-      last_updated: last_updated || new Date(),
-    });
+    await transaction.commit();
 
-    res.status(201).json(newStockInventory);
+    // Return both the current inventory and the transaction
+    res.status(201).json({
+      currentInventory: existingInventory,
+      transaction: inventoryTransaction,
+      message: "Stock added successfully",
+    });
   } catch (error) {
+    await transaction.rollback();
     res.status(500).json({
       error: error.message,
       message: "Failed to create stock inventory record",
@@ -118,11 +160,9 @@ exports.getStockInventoryByProductId = async (req, res) => {
     if (stockInventory) {
       res.status(200).json(stockInventory);
     } else {
-      res
-        .status(404)
-        .json({
-          message: `Stock inventory for product ID ${productId} not found`,
-        });
+      res.status(404).json({
+        message: `Stock inventory for product ID ${productId} not found`,
+      });
     }
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -204,6 +244,32 @@ exports.updateStockQuantity = async (req, res) => {
     res.status(500).json({
       error: error.message,
       message: "Failed to update stock quantity",
+    });
+  }
+};
+
+// Add a new endpoint to get inventory history for a product
+exports.getInventoryHistory = async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    const transactions = await InventoryTransaction.findAll({
+      where: { product_id: productId },
+      include: [
+        {
+          model: db.Product,
+          as: "product",
+          attributes: ["product_name", "size"],
+        },
+      ],
+      order: [["transaction_date", "DESC"]],
+    });
+
+    res.status(200).json(transactions);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+      message: "Failed to retrieve inventory history",
     });
   }
 };
