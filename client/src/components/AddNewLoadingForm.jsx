@@ -148,17 +148,17 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
   };
 
   return (
-    <div className="bg-white shadow-md rounded p-6">
+    <div className="p-6">
       <h2 className="text-xl font-semibold mb-6">Add New Loading</h2>
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-red-100 border border-gray-300 border border-gray-300-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {error}
         </div>
       )}
 
       {success && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+        <div className="bg-green-100 border border-gray-300 border border-gray-300-green-400 text-green-700 px-4 py-3 rounded mb-4">
           Loading transaction created successfully!
         </div>
       )}
@@ -174,7 +174,7 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
               name="lorry_id"
               value={formData.lorry_id}
               onChange={handleInputChange}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               required
             >
               <option value="">Select Lorry</option>
@@ -196,7 +196,7 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
               name="loaded_by"
               value={formData.loaded_by}
               onChange={handleInputChange}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               required
             />
           </div>
@@ -211,7 +211,7 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
               name="loading_date"
               value={formData.loading_date}
               onChange={handleInputChange}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             />
           </div>
 
@@ -225,7 +225,7 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
               name="loading_time"
               value={formData.loading_time}
               onChange={handleInputChange}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             />
           </div>
 
@@ -238,7 +238,7 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
               name="status"
               value={formData.status}
               onChange={handleInputChange}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             >
               <option value="Pending">Pending</option>
               <option value="Completed">Completed</option>
@@ -262,7 +262,7 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
                   onChange={(e) =>
                     handleLoadingItemChange(index, "product_id", e.target.value)
                   }
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                   required
                 >
                   <option value="">Select Product</option>
@@ -289,7 +289,7 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
                       e.target.value
                     )
                   }
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 />
               </div>
 
@@ -308,7 +308,7 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
                       e.target.value
                     )
                   }
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 />
               </div>
 
@@ -324,26 +324,26 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
               </div>
             </div>
           ))}
-
-          <div className="mt-4">
-            <button
-              type="button"
-              onClick={addLoadingItem}
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            >
-              Add Product
-            </button>
+          <div className="flex justify-between items-center">
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={addLoadingItem}
+                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              >
+                Add Product
+              </button>
+            </div>
+            <div className="flex items-center justify-end">
+              <button
+                type="submit"
+                className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                disabled={loading}
+              >
+                {loading ? "Processing..." : "Create Loading Transaction"}
+              </button>
+            </div>
           </div>
-        </div>
-
-        <div className="flex items-center justify-end">
-          <button
-            type="submit"
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            disabled={loading}
-          >
-            {loading ? "Processing..." : "Create Loading Transaction"}
-          </button>
         </div>
       </form>
     </div>

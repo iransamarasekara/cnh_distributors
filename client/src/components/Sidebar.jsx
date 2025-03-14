@@ -27,7 +27,7 @@ const Sidebar = () => {
     {
       icon: <TruckIcon className="w-5 h-5" />,
       label: "Loading",
-      hasDropdown: true,
+      hasDropdown: false,
       url: "/loading-management",
     },
     {

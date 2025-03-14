@@ -203,7 +203,7 @@ const LoadingManagementPage = () => {
 
       {activeTab === "Unloading" && (
         <div className="mt-6">
-          <div className="mb-6 p-4 border rounded bg-white shadow-sm">
+          <div className="mb-6 p-4 rounded bg-white shadow-sm">
             <h2 className="text-lg font-semibold mb-4">Add New Unloading</h2>
             <AddNewUnloadingForm
               inventoryData={inventoryData}
@@ -212,7 +212,7 @@ const LoadingManagementPage = () => {
             />
           </div>
 
-          <div className="p-4 border rounded bg-white shadow-sm">
+          <div className="p-4 rounded bg-white shadow-sm">
             <h2 className="text-lg font-semibold mb-4">
               Recent Unloading Transactions
             </h2>
@@ -276,7 +276,7 @@ const LoadingManagementPage = () => {
 
       {activeTab === "History" && (
         <div className="mt-6">
-          <div className="p-4 border rounded bg-white shadow-sm">
+          <div className="p-4 rounded bg-white shadow-sm">
             <h2 className="text-lg font-semibold mb-4">
               Loading & Unloading History
             </h2>
@@ -369,7 +369,7 @@ const LoadingManagementPage = () => {
 
       {activeTab === "Overview" && (
         <div className="mt-6">
-          <div className="p-4 border rounded bg-white shadow-sm">
+          <div className="p-4 rounded bg-white shadow-sm">
             <h2 className="text-lg font-semibold mb-4">
               Loading & Unloading Overview
             </h2>

@@ -147,7 +147,7 @@ const AddNewStockForm = ({ onInventoryAdded }) => {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-white rounded">
       <h2 className="text-xl font-semibold mb-6">Add Stock</h2>
 
       {error && (
