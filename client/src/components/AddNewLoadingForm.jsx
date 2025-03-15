@@ -3,7 +3,7 @@ import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-const AddNewLoadingForm = ({ onLoadingAdded }) => {
+const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -19,6 +19,8 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
       product_size: "",
       cases_loaded: 0,
       bottles_loaded: 0,
+      inventory: null,
+      validationError: "",
     },
   ]);
 
@@ -30,6 +32,12 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
     loaded_by: "",
     status: "Pending",
   });
+
+  // Get the inventory data keyed by product_id for easier lookup
+  const inventoryByProductId = inventoryData.reduce((acc, item) => {
+    acc[item.product_id] = item;
+    return acc;
+  }, {});
 
   // Fetch lorries and products on component mount
   useEffect(() => {
@@ -72,12 +80,60 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
     setFormData({ ...formData, [name]: value });
   };
 
-  // Handle loading item changes
+  // Normalize inventory values (convert bottles to cases when needed)
+  const normalizeInventoryQuantities = (
+    productId,
+    casesLoaded,
+    bottlesLoaded
+  ) => {
+    const inventory = inventoryByProductId[productId];
+
+    if (!inventory) {
+      return {
+        cases: casesLoaded,
+        bottles: bottlesLoaded,
+        error: "No inventory data available",
+      };
+    }
+
+    // Default bottles per case if not available
+    const bottlesPerCase = 12;
+
+    let finalCases = parseInt(casesLoaded) || 0;
+    let finalBottles = parseInt(bottlesLoaded) || 0;
+
+    // If bottles exceeds bottles per case, convert to additional cases
+    if (finalBottles >= bottlesPerCase) {
+      const additionalCases = Math.floor(finalBottles / bottlesPerCase);
+      finalCases += additionalCases;
+      finalBottles = finalBottles % bottlesPerCase;
+    }
+
+    // Check if we have enough inventory
+    const availableCases = inventory.cases_qty || 0;
+    const availableBottles = inventory.bottles_qty || 0;
+    const totalAvailableBottles =
+      availableCases * bottlesPerCase + availableBottles;
+    const totalRequestedBottles = finalCases * bottlesPerCase + finalBottles;
+
+    if (totalRequestedBottles > totalAvailableBottles) {
+      return {
+        cases: finalCases,
+        bottles: finalBottles,
+        error: `Insufficient stock. Available: ${availableCases} cases and ${availableBottles} bottles.`,
+      };
+    }
+
+    return { cases: finalCases, bottles: finalBottles, error: null };
+  };
+
+  // Handle loading item changes with validation
   const handleLoadingItemChange = (index, field, value) => {
     const updatedItems = [...loadingItems];
     updatedItems[index][field] = value;
+    updatedItems[index].validationError = "";
 
-    // If product name or size changed, update the product_id
+    // If product name or size changed, update the product_id and check inventory
     if (field === "product_name" || field === "product_size") {
       const selectedName =
         field === "product_name" ? value : updatedItems[index].product_name;
@@ -92,11 +148,46 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
 
         if (matchingProduct) {
           updatedItems[index].product_id = matchingProduct.product_id;
+          // Update inventory reference
+          updatedItems[index].inventory =
+            inventoryByProductId[matchingProduct.product_id] || null;
+
+          // Validate current quantities against inventory
+          if (updatedItems[index].inventory) {
+            const { cases, bottles, error } = normalizeInventoryQuantities(
+              matchingProduct.product_id,
+              updatedItems[index].cases_loaded,
+              updatedItems[index].bottles_loaded
+            );
+
+            updatedItems[index].cases_loaded = cases;
+            updatedItems[index].bottles_loaded = bottles;
+            updatedItems[index].validationError = error || "";
+          }
         } else {
           updatedItems[index].product_id = "";
+          updatedItems[index].inventory = null;
         }
       } else {
         updatedItems[index].product_id = "";
+        updatedItems[index].inventory = null;
+      }
+    }
+
+    // If cases or bottles changed, validate and normalize
+    if (field === "cases_loaded" || field === "bottles_loaded") {
+      if (updatedItems[index].product_id) {
+        const { cases, bottles, error } = normalizeInventoryQuantities(
+          updatedItems[index].product_id,
+          field === "cases_loaded" ? value : updatedItems[index].cases_loaded,
+          field === "bottles_loaded"
+            ? value
+            : updatedItems[index].bottles_loaded
+        );
+
+        updatedItems[index].cases_loaded = cases;
+        updatedItems[index].bottles_loaded = bottles;
+        updatedItems[index].validationError = error || "";
       }
     }
 
@@ -113,6 +204,8 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
         product_size: "",
         cases_loaded: 0,
         bottles_loaded: 0,
+        inventory: null,
+        validationError: "",
       },
     ]);
   };
@@ -126,6 +219,15 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
     }
   };
 
+  // Get available inventory for a product
+  const getAvailableInventory = (productId) => {
+    const inventory = inventoryByProductId[productId];
+    if (!inventory) return "N/A";
+    return `${inventory.cases_qty || 0} cases, ${
+      inventory.bottles_qty || 0
+    } bottles`;
+  };
+
   // Submit the form
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -136,14 +238,25 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
       return;
     }
 
+    // Check for any validation errors in loading items
+    const itemWithError = loadingItems.find((item) => item.validationError);
+    if (itemWithError) {
+      setError(
+        `Please fix validation errors: ${itemWithError.validationError}`
+      );
+      return;
+    }
+
     // Validate loading items
     const invalidItems = loadingItems.filter(
       (item) =>
-        !item.product_id || item.cases_loaded < 0 || item.bottles_loaded < 0
+        !item.product_id ||
+        (parseInt(item.cases_loaded) === 0 &&
+          parseInt(item.bottles_loaded) === 0)
     );
 
     if (invalidItems.length > 0) {
-      setError("Please fill in all product details with valid quantities");
+      setError("Please select products and enter valid quantities");
       return;
     }
 
@@ -180,6 +293,8 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
           product_size: "",
           cases_loaded: 0,
           bottles_loaded: 0,
+          inventory: null,
+          validationError: "",
         },
       ]);
 
@@ -309,7 +424,7 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
           {loadingItems.map((item, index) => (
             <div key={index} className="flex flex-wrap -mx-3 mb-4 items-end">
               {/* Product Name Selection */}
-              <div className="px-3 w-full md:w-1/4">
+              <div className="px-3 w-full md:w-2/6">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
                   Product Name*
                 </label>
@@ -335,7 +450,7 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
               </div>
 
               {/* Product Size Selection */}
-              <div className="px-3 w-full md:w-1/4">
+              <div className="px-3 w-full md:w-1/6">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
                   Product Size*
                 </label>
@@ -360,7 +475,7 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
                 </select>
               </div>
 
-              <div className="px-3 w-1/2 md:w-1/6">
+              <div className="px-3 w-1/2 md:w-1/12">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
                   Cases
                 </label>
@@ -379,7 +494,7 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
                 />
               </div>
 
-              <div className="px-3 w-1/2 md:w-1/6">
+              <div className="px-3 w-1/2 md:w-1/12">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
                   Bottles
                 </label>
@@ -396,6 +511,20 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
                   }
                   className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 />
+              </div>
+
+              <div className="px-3 w-full md:w-1/6">
+                {item.product_id && (
+                  <div className="text-sm">
+                    <span className="font-semibold">Available:</span>{" "}
+                    {getAvailableInventory(item.product_id)}
+                    {item.validationError && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {item.validationError}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="px-3 w-full md:w-1/6 flex justify-end">
@@ -424,7 +553,9 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
               <button
                 type="submit"
                 className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                disabled={loading}
+                disabled={
+                  loading || loadingItems.some((item) => item.validationError)
+                }
               >
                 {loading ? "Processing..." : "Create Loading Transaction"}
               </button>

@@ -35,7 +35,7 @@ const LoadingManagementPage = () => {
     const fetchInventory = async () => {
       try {
         setIsLoading(true);
-        const response = await axios.get(`${API_URL}/products/inventory`);
+        const response = await axios.get(`${API_URL}/stock-inventory`); ////////////////
         setInventoryData(response.data);
         setError(null);
       } catch (err) {
@@ -93,9 +93,7 @@ const LoadingManagementPage = () => {
       setIsLoading(true);
 
       // Refresh inventory
-      const inventoryResponse = await axios.get(
-        `${API_URL}/products/inventory`
-      );
+      const inventoryResponse = await axios.get(`${API_URL}/stock-inventory`);
       setInventoryData(inventoryResponse.data);
 
       // Refresh lorry data if needed
