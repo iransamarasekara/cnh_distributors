@@ -3,7 +3,7 @@ const router = express.Router();
 const loadingTransactionController = require("../controllers/loadingTransactionController");
 
 // Get all loading transactions
-router.get("/", loadingTransactionController.getAllLoadingTransactions);
+router.get("/", loadingTransactionController.getRecentLoadingTransactions);
 
 // Get a specific loading transaction by ID
 router.get("/:id", loadingTransactionController.getLoadingTransactionById);
@@ -22,5 +22,7 @@ router.get(
   "/lorry/:lorryId",
   loadingTransactionController.getLoadingTransactionsByLorryId
 );
+
+router.get("/statistics", loadingTransactionController.getLoadingStatistics);
 
 module.exports = router;

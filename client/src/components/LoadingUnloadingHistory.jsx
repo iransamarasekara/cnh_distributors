@@ -3,7 +3,7 @@ import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-const LoadingUnloadingHistory = () => {
+const LoadingUnloadingHistory = ({ selectedLorry, dateRange }) => {
   const [activeTab, setActiveTab] = useState("Loading");
   const [loadingTransactions, setLoadingTransactions] = useState([]);
   const [unloadingTransactions, setUnloadingTransactions] = useState([]);
@@ -19,11 +19,22 @@ const LoadingUnloadingHistory = () => {
         setIsLoading(true);
         setError(null);
 
+        const params = new URLSearchParams();
+        if (selectedLorry) params.append("lorryId", selectedLorry);
+        if (dateRange.startDate)
+          params.append("startDate", dateRange.startDate);
+        if (dateRange.endDate) params.append("endDate", dateRange.endDate);
+        params.append("limit", 20); // Or any number you want
+
         if (activeTab === "Loading") {
-          const response = await axios.get(`${API_URL}/loading-transactions`);
+          const response = await axios.get(
+            `${API_URL}/loading-transactions?${params.toString()}`
+          );
           setLoadingTransactions(response.data);
         } else {
-          const response = await axios.get(`${API_URL}/unloading-transactions`);
+          const response = await axios.get(
+            `${API_URL}/unloading-transactions?${params.toString()}`
+          );
           setUnloadingTransactions(response.data);
         }
       } catch (err) {
@@ -38,7 +49,7 @@ const LoadingUnloadingHistory = () => {
     };
 
     fetchData();
-  }, [activeTab]);
+  }, [activeTab, selectedLorry, dateRange]);
 
   // Fetch transaction details when a transaction is selected
   useEffect(() => {
@@ -52,11 +63,11 @@ const LoadingUnloadingHistory = () => {
         let response;
         if (activeTab === "Loading") {
           response = await axios.get(
-            `${API_URL}/loading-transactions/${currentTransaction.loading_id}/details`
+            `${API_URL}/loading-details/transaction/${currentTransaction.loading_id}`
           );
         } else {
           response = await axios.get(
-            `${API_URL}/unloading-transactions/${currentTransaction.unloading_id}/details`
+            `${API_URL}/unloading-details/transaction/${currentTransaction.unloading_id}`
           );
         }
 
@@ -93,7 +104,7 @@ const LoadingUnloadingHistory = () => {
       </h2>
 
       <div className="mb-6">
-        <div className="flex border-b">
+        <div className="flex border-b-2 border-gray-200 mb-4">
           <button
             className={`py-2 px-4 ${
               activeTab === "Loading"
@@ -132,7 +143,7 @@ const LoadingUnloadingHistory = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Transaction List */}
-          <div className="col-span-1 border rounded p-4">
+          <div className="col-span-1 border border-gray-300 rounded p-4">
             <h3 className="font-medium mb-4">{activeTab} Transactions</h3>
 
             {activeTab === "Loading" && loadingTransactions.length === 0 ? (
@@ -198,7 +209,7 @@ const LoadingUnloadingHistory = () => {
           </div>
 
           {/* Transaction Details */}
-          <div className="col-span-1 md:col-span-2 border rounded p-4">
+          <div className="col-span-1 md:col-span-2 border border-gray-300 rounded p-4">
             <h3 className="font-medium mb-4">Transaction Details</h3>
 
             {!currentTransaction ? (

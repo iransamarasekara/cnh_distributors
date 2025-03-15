@@ -442,3 +442,102 @@ exports.recordSalesFromUnloading = async (req, res) => {
     });
   }
 };
+
+exports.getRecentUnloadingTransactions = async (req, res) => {
+  try {
+    // Extract query parameters for filtering
+    const { lorryId, startDate, endDate, limit = 10 } = req.query;
+
+    // Build the where clause based on filters
+    const whereClause = {};
+
+    // Add lorry filter if provided
+    if (lorryId) {
+      whereClause.lorry_id = lorryId;
+    }
+
+    // Add date range filter if provided
+    if (startDate && endDate) {
+      whereClause.unloading_date = {
+        [db.Sequelize.Op.between]: [new Date(startDate), new Date(endDate)],
+      };
+    } else if (startDate) {
+      whereClause.unloading_date = {
+        [db.Sequelize.Op.gte]: new Date(startDate),
+      };
+    } else if (endDate) {
+      whereClause.unloading_date = {
+        [db.Sequelize.Op.lte]: new Date(endDate),
+      };
+    }
+
+    // Fetch loading transactions with related data
+    const unloadingTransactions = await UnloadingTransaction.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: UnloadingDetail,
+          as: "unloadingDetails",
+          include: [
+            {
+              model: db.Product,
+              as: "product",
+              attributes: ["product_id", "product_name", "bottles_per_case"],
+            },
+          ],
+        },
+        {
+          model: db.Lorry,
+          as: "lorry",
+          attributes: ["lorry_id", "lorry_number"],
+        },
+      ],
+      order: [
+        ["unloading_date", "DESC"],
+        ["unloading_time", "DESC"],
+      ],
+      limit: parseInt(limit),
+    });
+
+    // Calculate summary information for each transaction
+    const enhancedTransactions = unloadingTransactions.map((transaction) => {
+      const plainTransaction = transaction.get({ plain: true });
+
+      // Calculate totals if loadingDetails exist
+      if (
+        plainTransaction.unloadingDetails &&
+        plainTransaction.unloadingDetails.length > 0
+      ) {
+        plainTransaction.totalCases = plainTransaction.unloadingDetails.reduce(
+          (sum, detail) => sum + detail.cases_returned,
+          0
+        );
+
+        plainTransaction.totalBottles =
+          plainTransaction.unloadingDetails.reduce(
+            (sum, detail) => sum + detail.bottles_returned,
+            0
+          );
+
+        plainTransaction.totalValue = plainTransaction.unloadingDetails.reduce(
+          (sum, detail) => sum + detail.value,
+          0
+        );
+      } else {
+        plainTransaction.totalCases = 0;
+        plainTransaction.totalBottles = 0;
+        plainTransaction.totalValue = 0;
+      }
+
+      return plainTransaction;
+    });
+
+    res.status(200).json(enhancedTransactions);
+  } catch (error) {
+    console.error("Error fetching loading transactions:", error);
+    res.status(500).json({
+      error: error.message,
+      message: "Failed to retrieve recent loading transactions",
+    });
+  }
+};

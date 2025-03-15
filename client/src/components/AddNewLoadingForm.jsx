@@ -9,8 +9,17 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
   const [success, setSuccess] = useState(false);
   const [lorries, setLorries] = useState([]);
   const [products, setProducts] = useState([]);
+  // Group products by name and size for filtering
+  const [productNames, setProductNames] = useState([]);
+  const [productSizes, setProductSizes] = useState([]);
   const [loadingItems, setLoadingItems] = useState([
-    { product_id: "", cases_loaded: 0, bottles_loaded: 0 },
+    {
+      product_id: "",
+      product_name: "",
+      product_size: "",
+      cases_loaded: 0,
+      bottles_loaded: 0,
+    },
   ]);
 
   // Form state
@@ -37,6 +46,17 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
       try {
         const response = await axios.get(`${API_URL}/products`);
         setProducts(response.data);
+
+        // Extract unique product names and sizes
+        const names = [
+          ...new Set(response.data.map((product) => product.product_name)),
+        ];
+        const sizes = [
+          ...new Set(response.data.map((product) => product.size)),
+        ];
+
+        setProductNames(names);
+        setProductSizes(sizes);
       } catch (err) {
         console.error("Failed to fetch products:", err);
       }
@@ -56,6 +76,30 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
   const handleLoadingItemChange = (index, field, value) => {
     const updatedItems = [...loadingItems];
     updatedItems[index][field] = value;
+
+    // If product name or size changed, update the product_id
+    if (field === "product_name" || field === "product_size") {
+      const selectedName =
+        field === "product_name" ? value : updatedItems[index].product_name;
+      const selectedSize =
+        field === "product_size" ? value : updatedItems[index].product_size;
+
+      // Find matching product
+      if (selectedName && selectedSize) {
+        const matchingProduct = products.find(
+          (p) => p.product_name === selectedName && p.size === selectedSize
+        );
+
+        if (matchingProduct) {
+          updatedItems[index].product_id = matchingProduct.product_id;
+        } else {
+          updatedItems[index].product_id = "";
+        }
+      } else {
+        updatedItems[index].product_id = "";
+      }
+    }
+
     setLoadingItems(updatedItems);
   };
 
@@ -63,7 +107,13 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
   const addLoadingItem = () => {
     setLoadingItems([
       ...loadingItems,
-      { product_id: "", cases_loaded: 0, bottles_loaded: 0 },
+      {
+        product_id: "",
+        product_name: "",
+        product_size: "",
+        cases_loaded: 0,
+        bottles_loaded: 0,
+      },
     ]);
   };
 
@@ -112,10 +162,7 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
       };
 
       // Send the loading transaction request
-      const response = await axios.post(
-        `${API_URL}/loading-transactions`,
-        loadingData
-      );
+      await axios.post(`${API_URL}/loading-transactions`, loadingData);
 
       setSuccess(true);
       // Reset form
@@ -126,7 +173,15 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
         loaded_by: "",
         status: "Pending",
       });
-      setLoadingItems([{ product_id: "", cases_loaded: 0, bottles_loaded: 0 }]);
+      setLoadingItems([
+        {
+          product_id: "",
+          product_name: "",
+          product_size: "",
+          cases_loaded: 0,
+          bottles_loaded: 0,
+        },
+      ]);
 
       // Notify parent component
       if (onLoadingAdded) {
@@ -152,13 +207,13 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
       <h2 className="text-xl font-semibold mb-6">Add New Loading</h2>
 
       {error && (
-        <div className="bg-red-100 border border-gray-300 border border-gray-300-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {error}
         </div>
       )}
 
       {success && (
-        <div className="bg-green-100 border border-gray-300 border border-gray-300-green-400 text-green-700 px-4 py-3 rounded mb-4">
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
           Loading transaction created successfully!
         </div>
       )}
@@ -253,28 +308,59 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
 
           {loadingItems.map((item, index) => (
             <div key={index} className="flex flex-wrap -mx-3 mb-4 items-end">
-              <div className="px-3 w-full md:w-1/3">
+              {/* Product Name Selection */}
+              <div className="px-3 w-full md:w-1/4">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
-                  Product*
+                  Product Name*
                 </label>
                 <select
-                  value={item.product_id}
+                  value={item.product_name}
                   onChange={(e) =>
-                    handleLoadingItemChange(index, "product_id", e.target.value)
+                    handleLoadingItemChange(
+                      index,
+                      "product_name",
+                      e.target.value
+                    )
                   }
                   className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                   required
                 >
                   <option value="">Select Product</option>
-                  {products.map((product) => (
-                    <option key={product.product_id} value={product.product_id}>
-                      {product.product_name} - ({product.size})
+                  {productNames.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div className="px-3 w-1/2 md:w-1/4">
+              {/* Product Size Selection */}
+              <div className="px-3 w-full md:w-1/4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Product Size*
+                </label>
+                <select
+                  value={item.product_size}
+                  onChange={(e) =>
+                    handleLoadingItemChange(
+                      index,
+                      "product_size",
+                      e.target.value
+                    )
+                  }
+                  className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  required
+                >
+                  <option value="">Select Size</option>
+                  {productSizes.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="px-3 w-1/2 md:w-1/6">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
                   Cases
                 </label>
@@ -293,7 +379,7 @@ const AddNewLoadingForm = ({ onLoadingAdded }) => {
                 />
               </div>
 
-              <div className="px-3 w-1/2 md:w-1/4">
+              <div className="px-3 w-1/2 md:w-1/6">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
                   Bottles
                 </label>

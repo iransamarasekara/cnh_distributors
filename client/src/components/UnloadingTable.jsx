@@ -7,6 +7,10 @@ const UnloadingTable = ({ selectedLorry, dateRange }) => {
   const [unloadingData, setUnloadingData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedUnloadingId, setSelectedUnloadingId] = useState(null);
+  const [unloadingDetails, setUnloadingDetails] = useState([]);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
     const fetchUnloadingData = async () => {
@@ -23,9 +27,12 @@ const UnloadingTable = ({ selectedLorry, dateRange }) => {
           params.endDate = dateRange.endDate;
         }
 
-        const response = await axios.get(`${API_URL}/unloading-transactions`, {
-          params,
-        });
+        const response = await axios.get(
+          `${API_URL}/unloading-transactions?${params.toString()}`,
+          {
+            params,
+          }
+        );
         setUnloadingData(response.data);
         setError(null);
       } catch (err) {
@@ -39,6 +46,31 @@ const UnloadingTable = ({ selectedLorry, dateRange }) => {
     fetchUnloadingData();
   }, [selectedLorry, dateRange]);
 
+  const fetchUnloadingDetails = async (unloadingId) => {
+    try {
+      setIsLoadingDetails(true);
+      setSelectedUnloadingId(unloadingId);
+
+      const response = await axios.get(
+        `${API_URL}/unloading-details/transaction/${unloadingId}`
+      );
+
+      setUnloadingDetails(response.data);
+      setShowDetailsModal(true);
+    } catch (err) {
+      console.error("Failed to fetch unloading details:", err);
+      alert("Failed to fetch unloading details. Please try again.");
+    } finally {
+      setIsLoadingDetails(false);
+    }
+  };
+
+  const closeModal = () => {
+    setShowDetailsModal(false);
+    setSelectedUnloadingId(null);
+    setUnloadingDetails([]);
+  };
+
   if (isLoading)
     return <div className="text-center py-4">Loading transactions...</div>;
   if (error)
@@ -49,87 +81,221 @@ const UnloadingTable = ({ selectedLorry, dateRange }) => {
     );
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full bg-white">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              ID
-            </th>
-            <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Lorry
-            </th>
-            <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Date
-            </th>
-            <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Time
-            </th>
-            <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Unloaded By
-            </th>
-            <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-            <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Products
-            </th>
-            <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {unloadingData.map((transaction) => (
-            <tr key={transaction.unloading_id} className="hover:bg-gray-50">
-              <td className="py-2 px-4 text-sm text-gray-900">
-                {transaction.unloading_id}
-              </td>
-              <td className="py-2 px-4 text-sm text-gray-900">
-                {transaction.lorry?.lorry_number || "N/A"}
-              </td>
-              <td className="py-2 px-4 text-sm text-gray-900">
-                {new Date(transaction.unloading_date).toLocaleDateString()}
-              </td>
-              <td className="py-2 px-4 text-sm text-gray-900">
-                {transaction.unloading_time}
-              </td>
-              <td className="py-2 px-4 text-sm text-gray-900">
-                {transaction.unloaded_by}
-              </td>
-              <td className="py-2 px-4 text-sm">
-                <span
-                  className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                  ${
-                    transaction.status === "Completed"
-                      ? "bg-green-100 text-green-800"
-                      : transaction.status === "Pending"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  {transaction.status}
-                </span>
-              </td>
-              <td className="py-2 px-4 text-sm text-gray-900">
-                {transaction.unloadingDetails?.length || 0} products
-              </td>
-              <td className="py-2 px-4 text-sm text-gray-500 flex space-x-2">
-                <button
-                  className="text-blue-600 hover:text-blue-900"
-                  onClick={() =>
-                    alert(
-                      `View details for unloading ID: ${transaction.unloading_id}`
-                    )
-                  }
-                >
-                  View Details
-                </button>
-              </td>
+    <div className="relative">
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                ID
+              </th>
+              <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Lorry
+              </th>
+              <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Date
+              </th>
+              <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Time
+              </th>
+              <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Unloaded By
+              </th>
+              <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Products
+              </th>
+              <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {unloadingData.map((transaction) => (
+              <tr key={transaction.unloading_id} className="hover:bg-gray-50">
+                <td className="py-2 px-4 text-sm text-gray-900">
+                  {transaction.unloading_id}
+                </td>
+                <td className="py-2 px-4 text-sm text-gray-900">
+                  {transaction.lorry?.lorry_number || "N/A"}
+                </td>
+                <td className="py-2 px-4 text-sm text-gray-900">
+                  {new Date(transaction.unloading_date).toLocaleDateString()}
+                </td>
+                <td className="py-2 px-4 text-sm text-gray-900">
+                  {transaction.unloading_time}
+                </td>
+                <td className="py-2 px-4 text-sm text-gray-900">
+                  {transaction.unloaded_by}
+                </td>
+                <td className="py-2 px-4 text-sm">
+                  <span
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    ${
+                      transaction.status === "Completed"
+                        ? "bg-green-100 text-green-800"
+                        : transaction.status === "Pending"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {transaction.status}
+                  </span>
+                </td>
+                <td className="py-2 px-4 text-sm text-gray-900">
+                  {transaction.unloadingDetails?.length || 0} products
+                </td>
+                <td className="py-2 px-4 text-sm text-gray-500 flex space-x-2">
+                  <button
+                    className="text-blue-600 hover:text-blue-900"
+                    onClick={() =>
+                      fetchUnloadingDetails(transaction.unloading_id)
+                    }
+                  >
+                    View Details
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Unloading Details Modal */}
+      {showDetailsModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-screen overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">
+                Unloading Details - ID: {selectedUnloadingId}
+              </h2>
+              <button
+                className="text-gray-500 hover:text-gray-700"
+                onClick={closeModal}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {isLoadingDetails ? (
+              <div className="text-center py-8">Loading details...</div>
+            ) : unloadingDetails.length === 0 ? (
+              <div className="text-center py-8">No unloading details found</div>
+            ) : (
+              <table className="min-w-full bg-white">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Detail ID
+                    </th>
+                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Product ID
+                    </th>
+                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Cases Unloaded
+                    </th>
+                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Bottles Unloaded
+                    </th>
+                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total Bottles
+                    </th>
+                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Value
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {unloadingDetails.map((detail) => (
+                    <tr
+                      key={detail.unloading_detail_id}
+                      className="hover:bg-gray-50"
+                    >
+                      <td className="py-2 px-4 text-sm text-gray-900">
+                        {detail.unloading_detail_id}
+                      </td>
+                      <td className="py-2 px-4 text-sm text-gray-900">
+                        {detail.product_id}
+                      </td>
+                      <td className="py-2 px-4 text-sm text-gray-900">
+                        {detail.cases_returned}
+                      </td>
+                      <td className="py-2 px-4 text-sm text-gray-900">
+                        {detail.bottles_returned}
+                      </td>
+                      <td className="py-2 px-4 text-sm text-gray-900">
+                        {detail.total_bottles_returned}
+                      </td>
+                      <td className="py-2 px-4 text-sm text-gray-900">
+                        ${detail.value.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                {/* Summary row */}
+                <tfoot className="bg-gray-50">
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className="py-2 px-4 text-sm font-semibold text-gray-900 text-right"
+                    >
+                      Totals:
+                    </td>
+                    <td className="py-2 px-4 text-sm font-semibold text-gray-900">
+                      {unloadingDetails.reduce(
+                        (sum, detail) => sum + detail.cases_returned,
+                        0
+                      )}
+                    </td>
+                    <td className="py-2 px-4 text-sm font-semibold text-gray-900">
+                      {unloadingDetails.reduce(
+                        (sum, detail) => sum + detail.bottles_returned,
+                        0
+                      )}
+                    </td>
+                    <td className="py-2 px-4 text-sm font-semibold text-gray-900">
+                      {unloadingDetails.reduce(
+                        (sum, detail) => sum + detail.total_bottles_returned,
+                        0
+                      )}
+                    </td>
+                    <td className="py-2 px-4 text-sm font-semibold text-gray-900">
+                      $
+                      {unloadingDetails
+                        .reduce((sum, detail) => sum + detail.value, 0)
+                        .toFixed(2)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            )}
+
+            <div className="mt-6 flex justify-end">
+              <button
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                onClick={closeModal}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

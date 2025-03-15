@@ -5,6 +5,8 @@ import AddNewLoadingForm from "../components/AddNewLoadingForm";
 import AddNewUnloadingForm from "../components/AddNewUnloadingForm";
 import LoadingUnloadingHistory from "../components/LoadingUnloadingHistory";
 import axios from "axios";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -16,14 +18,15 @@ const LoadingManagementPage = () => {
   const [error, setError] = useState(null);
 
   // For filters
-  const [availableProducts, setAvailableProducts] = useState([]);
+  // const [availableProducts, setAvailableProducts] = useState([]);
   const [availableLorries, setAvailableLorries] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState("");
+  // const [selectedProduct, setSelectedProduct] = useState("");
   const [selectedLorry, setSelectedLorry] = useState("");
   const [dateRange, setDateRange] = useState({
     startDate: null,
     endDate: null,
   });
+  const [isOpen, setIsOpen] = useState(false);
 
   const tabs = ["Loading", "Unloading", "History", "Overview"];
 
@@ -55,24 +58,24 @@ const LoadingManagementPage = () => {
     };
 
     // Fetch available products for filtering
-    const fetchProducts = async () => {
-      try {
-        const response = await axios.get(`${API_URL}/products`);
-        setAvailableProducts(response.data);
-      } catch (err) {
-        console.error("Failed to fetch products:", err);
-      }
-    };
+    // const fetchProducts = async () => {
+    //   try {
+    //     const response = await axios.get(`${API_URL}/products`);
+    //     setAvailableProducts(response.data);
+    //   } catch (err) {
+    //     console.error("Failed to fetch products:", err);
+    //   }
+    // };
 
     fetchInventory();
     fetchLorries();
-    fetchProducts();
+    // fetchProducts();
   }, []);
 
   // Handle product filter change
-  const handleProductChange = (e) => {
-    setSelectedProduct(e.target.value);
-  };
+  // const handleProductChange = (e) => {
+  //   setSelectedProduct(e.target.value);
+  // };
 
   // Handle lorry filter change
   const handleLorryChange = (e) => {
@@ -80,9 +83,9 @@ const LoadingManagementPage = () => {
   };
 
   // Handle date range change
-  const handleDateRangeChange = (range) => {
-    setDateRange(range);
-  };
+  // const handleDateRangeChange = (range) => {
+  //   setDateRange(range);
+  // };
 
   // Function to refresh data after new loading/unloading
   const refreshData = async () => {
@@ -175,8 +178,11 @@ const LoadingManagementPage = () => {
 
               {/* Date Range Filter - You can implement a date picker component here */}
               <div className="relative">
-                <button className="border border-gray-300 rounded px-4 py-2 bg-white text-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                  {dateRange.startDate
+                <button
+                  className="border border-gray-300 rounded px-4 py-2 bg-white text-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  onClick={() => setIsOpen(!isOpen)}
+                >
+                  {dateRange.startDate && dateRange.endDate
                     ? `${new Date(
                         dateRange.startDate
                       ).toLocaleDateString()} - ${new Date(
@@ -184,13 +190,29 @@ const LoadingManagementPage = () => {
                       ).toLocaleDateString()}`
                     : "Select Date Range"}
                 </button>
+                {isOpen && (
+                  <div className="absolute mt-2 bg-white border border-gray-300 p-2 shadow-lg z-10">
+                    <DatePicker
+                      selectsRange={true}
+                      startDate={dateRange.startDate}
+                      endDate={dateRange.endDate}
+                      onChange={(update) => {
+                        setDateRange({
+                          startDate: update[0],
+                          endDate: update[1],
+                        });
+                        if (update[0] && update[1]) setIsOpen(false);
+                      }}
+                      isClearable={true}
+                      inline
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
             {isLoading ? (
               <div className="text-center py-6">Loading data...</div>
-            ) : error ? (
-              <div className="text-center py-6 text-red-500">{error}</div>
             ) : (
               <LoadingTable
                 selectedLorry={selectedLorry}
@@ -248,8 +270,11 @@ const LoadingManagementPage = () => {
 
               {/* Date Range Filter */}
               <div className="relative">
-                <button className="border border-gray-300 rounded px-4 py-2 bg-white text-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                  {dateRange.startDate
+                <button
+                  className="border border-gray-300 rounded px-4 py-2 bg-white text-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  onClick={() => setIsOpen(!isOpen)}
+                >
+                  {dateRange.startDate && dateRange.endDate
                     ? `${new Date(
                         dateRange.startDate
                       ).toLocaleDateString()} - ${new Date(
@@ -257,13 +282,29 @@ const LoadingManagementPage = () => {
                       ).toLocaleDateString()}`
                     : "Select Date Range"}
                 </button>
+                {isOpen && (
+                  <div className="absolute mt-2 bg-white border border-gray-300 p-2 shadow-lg z-10">
+                    <DatePicker
+                      selectsRange={true}
+                      startDate={dateRange.startDate}
+                      endDate={dateRange.endDate}
+                      onChange={(update) => {
+                        setDateRange({
+                          startDate: update[0],
+                          endDate: update[1],
+                        });
+                        if (update[0] && update[1]) setIsOpen(false);
+                      }}
+                      isClearable={true}
+                      inline
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
             {isLoading ? (
               <div className="text-center py-6">Loading data...</div>
-            ) : error ? (
-              <div className="text-center py-6 text-red-500">{error}</div>
             ) : (
               <UnloadingTable
                 selectedLorry={selectedLorry}
@@ -276,13 +317,13 @@ const LoadingManagementPage = () => {
 
       {activeTab === "History" && (
         <div className="mt-6">
-          <div className="p-4 rounded bg-white shadow-sm">
+          <div className="p-4">
             <h2 className="text-lg font-semibold mb-4">
               Loading & Unloading History
             </h2>
             <div className="mb-4 flex flex-wrap gap-4">
               {/* Product Filter */}
-              <div className="relative">
+              {/* <div className="relative">
                 <select
                   className="appearance-none border border-gray-300 rounded px-4 py-2 pr-8 bg-white text-gray-700 w-40 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={selectedProduct}
@@ -308,7 +349,7 @@ const LoadingManagementPage = () => {
                     />
                   </svg>
                 </div>
-              </div>
+              </div> */}
 
               {/* Lorry Filter */}
               <div className="relative">
@@ -341,8 +382,11 @@ const LoadingManagementPage = () => {
 
               {/* Date Range Filter */}
               <div className="relative">
-                <button className="border border-gray-300 rounded px-4 py-2 bg-white text-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                  {dateRange.startDate
+                <button
+                  className="border border-gray-300 rounded px-4 py-2 bg-white text-gray-700 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  onClick={() => setIsOpen(!isOpen)}
+                >
+                  {dateRange.startDate && dateRange.endDate
                     ? `${new Date(
                         dateRange.startDate
                       ).toLocaleDateString()} - ${new Date(
@@ -350,15 +394,30 @@ const LoadingManagementPage = () => {
                       ).toLocaleDateString()}`
                     : "Select Date Range"}
                 </button>
+                {isOpen && (
+                  <div className="absolute mt-2 bg-white border border-gray-300 p-2 shadow-lg z-10">
+                    <DatePicker
+                      selectsRange={true}
+                      startDate={dateRange.startDate}
+                      endDate={dateRange.endDate}
+                      onChange={(update) => {
+                        setDateRange({
+                          startDate: update[0],
+                          endDate: update[1],
+                        });
+                        if (update[0] && update[1]) setIsOpen(false);
+                      }}
+                      isClearable={true}
+                      inline
+                    />
+                  </div>
+                )}
               </div>
             </div>
             {isLoading ? (
               <div className="text-center py-6">Loading data...</div>
-            ) : error ? (
-              <div className="text-center py-6 text-red-500">{error}</div>
             ) : (
               <LoadingUnloadingHistory
-                selectedProduct={selectedProduct}
                 selectedLorry={selectedLorry}
                 dateRange={dateRange}
               />
@@ -375,8 +434,6 @@ const LoadingManagementPage = () => {
             </h2>
             {isLoading ? (
               <div className="text-center py-6">Loading overview data...</div>
-            ) : error ? (
-              <div className="text-center py-6 text-red-500">{error}</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="p-4 border rounded bg-gray-50">

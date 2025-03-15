@@ -19,6 +19,14 @@ const AddNewStockForm = ({ onInventoryAdded }) => {
     notes: "",
   });
 
+  // State for separate product name and size selections
+  const [selectedProductName, setSelectedProductName] = useState("");
+  const [selectedSize, setSelectedSize] = useState("");
+
+  // Lists for dropdowns
+  const [productNames, setProductNames] = useState([]);
+  const [availableSizes, setAvailableSizes] = useState([]);
+
   // Selected product details for calculation
   const [selectedProduct, setSelectedProduct] = useState(null);
 
@@ -29,6 +37,12 @@ const AddNewStockForm = ({ onInventoryAdded }) => {
         setIsLoading(true);
         const response = await axios.get(`${API_URL}/products`);
         setProducts(response.data);
+
+        // Extract unique product names
+        const uniqueNames = [
+          ...new Set(response.data.map((p) => p.product_name)),
+        ].sort();
+        setProductNames(uniqueNames);
       } catch (err) {
         setError("Failed to fetch products");
         console.error(err);
@@ -40,24 +54,70 @@ const AddNewStockForm = ({ onInventoryAdded }) => {
     fetchProducts();
   }, []);
 
-  // Handle product selection change
-  const handleProductChange = (e) => {
-    const productId = e.target.value;
-    setFormData({
-      ...formData,
-      product_id: productId,
-      cases_qty: 0,
-      bottles_qty: 0,
-      total_bottles: 0,
-      total_value: 0,
-      notes: "",
-    });
-
-    if (productId) {
-      const product = products.find(
-        (p) => p.product_id.toString() === productId
+  // Update available sizes when product name changes
+  useEffect(() => {
+    if (selectedProductName) {
+      // Filter products by the selected name
+      const filteredProducts = products.filter(
+        (p) => p.product_name === selectedProductName
       );
-      setSelectedProduct(product);
+
+      // Extract unique sizes for this product name
+      const sizes = [...new Set(filteredProducts.map((p) => p.size))].sort();
+
+      setAvailableSizes(sizes);
+
+      // Reset size selection and selected product
+      setSelectedSize("");
+      setSelectedProduct(null);
+
+      // Reset form data related to product
+      setFormData((prev) => ({
+        ...prev,
+        product_id: "",
+        cases_qty: 0,
+        bottles_qty: 0,
+        total_bottles: 0,
+        total_value: 0,
+      }));
+    } else {
+      setAvailableSizes([]);
+      setSelectedSize("");
+    }
+  }, [selectedProductName, products]);
+
+  // Handle product name selection change
+  const handleProductNameChange = (e) => {
+    const productName = e.target.value;
+    setSelectedProductName(productName);
+  };
+
+  // Handle size selection change
+  const handleSizeChange = (e) => {
+    const size = e.target.value;
+    setSelectedSize(size);
+
+    if (selectedProductName && size) {
+      // Find matching product
+      const product = products.find(
+        (p) => p.product_name === selectedProductName && p.size === size
+      );
+
+      if (product) {
+        setSelectedProduct(product);
+        setFormData({
+          ...formData,
+          product_id: product.product_id.toString(),
+          cases_qty: 0,
+          bottles_qty: 0,
+          total_bottles: 0,
+          total_value: 0,
+          notes: "",
+        });
+      } else {
+        setSelectedProduct(null);
+        setError("No matching product found");
+      }
     } else {
       setSelectedProduct(null);
     }
@@ -106,7 +166,7 @@ const AddNewStockForm = ({ onInventoryAdded }) => {
     e.preventDefault();
 
     if (!formData.product_id) {
-      setError("Please select a product");
+      setError("Please select both a product name and size");
       return;
     }
 
@@ -128,6 +188,8 @@ const AddNewStockForm = ({ onInventoryAdded }) => {
           total_value: 0,
           notes: "",
         });
+        setSelectedProductName("");
+        setSelectedSize("");
         setSelectedProduct(null);
 
         // Call the parent callback to refresh inventory data
@@ -164,27 +226,71 @@ const AddNewStockForm = ({ onInventoryAdded }) => {
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Product Selection */}
-          <div className="col-span-2">
+          {/* Product Name Selection */}
+          <div>
             <label
-              htmlFor="product_id"
+              htmlFor="product_name"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Select Product
+              Select Product Name
             </label>
             <div className="relative">
               <select
-                id="product_id"
-                name="product_id"
-                value={formData.product_id}
-                onChange={handleProductChange}
+                id="product_name"
+                name="product_name"
+                value={selectedProductName}
+                onChange={handleProductNameChange}
                 className="appearance-none block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 disabled={isLoading}
               >
-                <option value="">Select a product</option>
-                {products.map((product) => (
-                  <option key={product.product_id} value={product.product_id}>
-                    {product.product_name} - {product.size}
+                <option value="">Select a product name</option>
+                {productNames.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                <svg
+                  className="fill-current h-4 w-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Size Selection */}
+          <div>
+            <label
+              htmlFor="size"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Select Size
+            </label>
+            <div className="relative">
+              <select
+                id="size"
+                name="size"
+                value={selectedSize}
+                onChange={handleSizeChange}
+                className="appearance-none block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                disabled={
+                  isLoading ||
+                  !selectedProductName ||
+                  availableSizes.length === 0
+                }
+              >
+                <option value="">Select a size</option>
+                {availableSizes.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
                   </option>
                 ))}
               </select>

@@ -7,25 +7,29 @@ const LoadingTable = ({ selectedLorry, dateRange }) => {
   const [loadingData, setLoadingData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedLoadingId, setSelectedLoadingId] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState([]);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
     const fetchLoadingData = async () => {
       try {
         setIsLoading(true);
-        const params = {};
 
-        if (selectedLorry) {
-          params.lorry_id = selectedLorry;
-        }
+        // Build query params
+        const params = new URLSearchParams();
+        if (selectedLorry) params.append("lorryId", selectedLorry);
+        if (dateRange.startDate)
+          params.append("startDate", dateRange.startDate);
+        if (dateRange.endDate) params.append("endDate", dateRange.endDate);
+        params.append("limit", 20); // Or any number you want
 
-        if (dateRange.startDate && dateRange.endDate) {
-          params.startDate = dateRange.startDate;
-          params.endDate = dateRange.endDate;
-        }
+        // Changed from /loading-transactions/recent to /loading-transactions
+        const response = await axios.get(
+          `${API_URL}/loading-transactions?${params.toString()}`
+        );
 
-        const response = await axios.get(`${API_URL}/loading-transactions`, {
-          params,
-        });
         setLoadingData(response.data);
         setError(null);
       } catch (err) {
@@ -39,6 +43,31 @@ const LoadingTable = ({ selectedLorry, dateRange }) => {
     fetchLoadingData();
   }, [selectedLorry, dateRange]);
 
+  const fetchLoadingDetails = async (loadingId) => {
+    try {
+      setIsLoadingDetails(true);
+      setSelectedLoadingId(loadingId);
+
+      const response = await axios.get(
+        `${API_URL}/loading-details/transaction/${loadingId}`
+      );
+
+      setLoadingDetails(response.data);
+      setShowDetailsModal(true);
+    } catch (err) {
+      console.error("Failed to fetch loading details:", err);
+      alert("Failed to fetch loading details. Please try again.");
+    } finally {
+      setIsLoadingDetails(false);
+    }
+  };
+
+  const closeModal = () => {
+    setShowDetailsModal(false);
+    setSelectedLoadingId(null);
+    setLoadingDetails([]);
+  };
+
   if (isLoading)
     return <div className="text-center py-4">Loading transactions...</div>;
   if (error)
@@ -49,87 +78,219 @@ const LoadingTable = ({ selectedLorry, dateRange }) => {
     );
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full bg-white">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              ID
-            </th>
-            <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Lorry
-            </th>
-            <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Date
-            </th>
-            <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Time
-            </th>
-            <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Loaded By
-            </th>
-            <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-            <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Products
-            </th>
-            <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {loadingData.map((transaction) => (
-            <tr key={transaction.loading_id} className="hover:bg-gray-50">
-              <td className="py-2 px-4 text-sm text-gray-900">
-                {transaction.loading_id}
-              </td>
-              <td className="py-2 px-4 text-sm text-gray-900">
-                {transaction.lorry?.lorry_number || "N/A"}
-              </td>
-              <td className="py-2 px-4 text-sm text-gray-900">
-                {new Date(transaction.loading_date).toLocaleDateString()}
-              </td>
-              <td className="py-2 px-4 text-sm text-gray-900">
-                {transaction.loading_time}
-              </td>
-              <td className="py-2 px-4 text-sm text-gray-900">
-                {transaction.loaded_by}
-              </td>
-              <td className="py-2 px-4 text-sm">
-                <span
-                  className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                  ${
-                    transaction.status === "Completed"
-                      ? "bg-green-100 text-green-800"
-                      : transaction.status === "Pending"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  {transaction.status}
-                </span>
-              </td>
-              <td className="py-2 px-4 text-sm text-gray-900">
-                {transaction.loadingDetails?.length || 0} products
-              </td>
-              <td className="py-2 px-4 text-sm text-gray-500 flex space-x-2">
-                <button
-                  className="text-blue-600 hover:text-blue-900"
-                  onClick={() =>
-                    alert(
-                      `View details for loading ID: ${transaction.loading_id}`
-                    )
-                  }
-                >
-                  View Details
-                </button>
-              </td>
+    <div className="relative">
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-white">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                ID
+              </th>
+              <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Lorry
+              </th>
+              <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Date
+              </th>
+              <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Time
+              </th>
+              <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Loaded By
+              </th>
+              <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Products
+              </th>
+              <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {loadingData.map((transaction) => (
+              <tr key={transaction.loading_id} className="hover:bg-gray-50">
+                <td className="py-2 px-4 text-sm text-gray-900">
+                  {transaction.loading_id}
+                </td>
+                <td className="py-2 px-4 text-sm text-gray-900">
+                  {transaction.lorry?.lorry_number || "N/A"}
+                </td>
+                <td className="py-2 px-4 text-sm text-gray-900">
+                  {new Date(transaction.loading_date).toLocaleDateString()}
+                </td>
+                <td className="py-2 px-4 text-sm text-gray-900">
+                  {transaction.loading_time}
+                </td>
+                <td className="py-2 px-4 text-sm text-gray-900">
+                  {transaction.loaded_by}
+                </td>
+                <td className="py-2 px-4 text-sm">
+                  <span
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    ${
+                      transaction.status === "Completed"
+                        ? "bg-green-100 text-green-800"
+                        : transaction.status === "Pending"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {transaction.status}
+                  </span>
+                </td>
+                <td className="py-2 px-4 text-sm text-gray-900">
+                  {transaction.loadingDetails?.length || 0} products
+                </td>
+                <td className="py-2 px-4 text-sm text-gray-500 flex space-x-2">
+                  <button
+                    className="text-blue-600 hover:text-blue-900"
+                    onClick={() => fetchLoadingDetails(transaction.loading_id)}
+                  >
+                    View Details
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Loading Details Modal */}
+      {showDetailsModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-screen overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">
+                Loading Details - ID: {selectedLoadingId}
+              </h2>
+              <button
+                className="text-gray-500 hover:text-gray-700"
+                onClick={closeModal}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {isLoadingDetails ? (
+              <div className="text-center py-8">Loading details...</div>
+            ) : loadingDetails.length === 0 ? (
+              <div className="text-center py-8">No loading details found</div>
+            ) : (
+              <table className="min-w-full bg-white">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Detail ID
+                    </th>
+                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Product ID
+                    </th>
+                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Cases Loaded
+                    </th>
+                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Bottles Loaded
+                    </th>
+                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total Bottles
+                    </th>
+                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Value
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {loadingDetails.map((detail) => (
+                    <tr
+                      key={detail.loading_detail_id}
+                      className="hover:bg-gray-50"
+                    >
+                      <td className="py-2 px-4 text-sm text-gray-900">
+                        {detail.loading_detail_id}
+                      </td>
+                      <td className="py-2 px-4 text-sm text-gray-900">
+                        {detail.product_id}
+                      </td>
+                      <td className="py-2 px-4 text-sm text-gray-900">
+                        {detail.cases_loaded}
+                      </td>
+                      <td className="py-2 px-4 text-sm text-gray-900">
+                        {detail.bottles_loaded}
+                      </td>
+                      <td className="py-2 px-4 text-sm text-gray-900">
+                        {detail.total_bottles_loaded}
+                      </td>
+                      <td className="py-2 px-4 text-sm text-gray-900">
+                        ${detail.value.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                {/* Summary row */}
+                <tfoot className="bg-gray-50">
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className="py-2 px-4 text-sm font-semibold text-gray-900 text-right"
+                    >
+                      Totals:
+                    </td>
+                    <td className="py-2 px-4 text-sm font-semibold text-gray-900">
+                      {loadingDetails.reduce(
+                        (sum, detail) => sum + detail.cases_loaded,
+                        0
+                      )}
+                    </td>
+                    <td className="py-2 px-4 text-sm font-semibold text-gray-900">
+                      {loadingDetails.reduce(
+                        (sum, detail) => sum + detail.bottles_loaded,
+                        0
+                      )}
+                    </td>
+                    <td className="py-2 px-4 text-sm font-semibold text-gray-900">
+                      {loadingDetails.reduce(
+                        (sum, detail) => sum + detail.total_bottles_loaded,
+                        0
+                      )}
+                    </td>
+                    <td className="py-2 px-4 text-sm font-semibold text-gray-900">
+                      $
+                      {loadingDetails
+                        .reduce((sum, detail) => sum + detail.value, 0)
+                        .toFixed(2)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            )}
+
+            <div className="mt-6 flex justify-end">
+              <button
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                onClick={closeModal}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

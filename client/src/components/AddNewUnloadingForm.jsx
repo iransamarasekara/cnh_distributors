@@ -9,8 +9,16 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
   const [success, setSuccess] = useState(false);
   const [lorries, setLorries] = useState([]);
   const [products, setProducts] = useState([]);
+  const [productNames, setProductNames] = useState([]);
+  const [productSizes, setProductSizes] = useState([]);
   const [unloadingItems, setUnloadingItems] = useState([
-    { product_id: "", cases_returned: 0, bottles_returned: 0 },
+    {
+      product_id: "",
+      product_name: "",
+      product_size: "",
+      cases_returned: 0,
+      bottles_returned: 0,
+    },
   ]);
 
   // Form state
@@ -37,6 +45,17 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
       try {
         const response = await axios.get(`${API_URL}/products`);
         setProducts(response.data);
+
+        // Extract unique product names and sizes
+        const uniqueNames = [
+          ...new Set(response.data.map((product) => product.product_name)),
+        ];
+        const uniqueSizes = [
+          ...new Set(response.data.map((product) => product.size)),
+        ];
+
+        setProductNames(uniqueNames);
+        setProductSizes(uniqueSizes);
       } catch (err) {
         console.error("Failed to fetch products:", err);
       }
@@ -52,6 +71,35 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
     setFormData({ ...formData, [name]: value });
   };
 
+  // Find product_id based on name and size
+  const findProductId = (name, size) => {
+    const product = products.find(
+      (p) => p.product_name === name && p.size === size
+    );
+    return product ? product.product_id : "";
+  };
+
+  // Handle unloading item changes for product name and size
+  const handleProductSelection = (index, field, value) => {
+    const updatedItems = [...unloadingItems];
+    updatedItems[index][field] = value;
+
+    // If both name and size are selected, find the product_id
+    if (field === "product_name" && updatedItems[index].product_size) {
+      updatedItems[index].product_id = findProductId(
+        value,
+        updatedItems[index].product_size
+      );
+    } else if (field === "product_size" && updatedItems[index].product_name) {
+      updatedItems[index].product_id = findProductId(
+        updatedItems[index].product_name,
+        value
+      );
+    }
+
+    setUnloadingItems(updatedItems);
+  };
+
   // Handle unloading item changes
   const handleUnloadingItemChange = (index, field, value) => {
     const updatedItems = [...unloadingItems];
@@ -63,7 +111,13 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
   const addUnloadingItem = () => {
     setUnloadingItems([
       ...unloadingItems,
-      { product_id: "", cases_returned: 0, bottles_returned: 0 },
+      {
+        product_id: "",
+        product_name: "",
+        product_size: "",
+        cases_returned: 0,
+        bottles_returned: 0,
+      },
     ]);
   };
 
@@ -112,10 +166,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
       };
 
       // Send the unloading transaction request
-      const response = await axios.post(
-        `${API_URL}/unloading-transactions`,
-        unloadingData
-      );
+      await axios.post(`${API_URL}/unloading-transactions`, unloadingData);
 
       setSuccess(true);
       // Reset form
@@ -127,7 +178,13 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
         status: "Pending",
       });
       setUnloadingItems([
-        { product_id: "", cases_returned: 0, bottles_returned: 0 },
+        {
+          product_id: "",
+          product_name: "",
+          product_size: "",
+          cases_returned: 0,
+          bottles_returned: 0,
+        },
       ]);
 
       // Notify parent component
@@ -154,13 +211,13 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
       <h2 className="text-xl font-semibold mb-6">Add New Unloading</h2>
 
       {error && (
-        <div className="bg-red-100 border border-gray-300 border border-gray-300-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {error}
         </div>
       )}
 
       {success && (
-        <div className="bg-green-100 border border-gray-300 border border-gray-300-green-400 text-green-700 px-4 py-3 rounded mb-4">
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
           Unloading transaction created successfully!
         </div>
       )}
@@ -255,32 +312,57 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
 
           {unloadingItems.map((item, index) => (
             <div key={index} className="flex flex-wrap -mx-3 mb-4 items-end">
-              <div className="px-3 w-full md:w-1/3">
+              <div className="px-3 w-full md:w-1/4">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
-                  Product*
+                  Product Name*
                 </label>
                 <select
-                  value={item.product_id}
+                  value={item.product_name}
                   onChange={(e) =>
-                    handleUnloadingItemChange(
+                    handleProductSelection(
                       index,
-                      "product_id",
+                      "product_name",
                       e.target.value
                     )
                   }
                   className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                   required
                 >
-                  <option value="">Select Product</option>
-                  {products.map((product) => (
-                    <option key={product.product_id} value={product.product_id}>
-                      {product.product_name} ({product.size})
+                  <option value="">Select Product Name</option>
+                  {productNames.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div className="px-3 w-1/2 md:w-1/4">
+              <div className="px-3 w-full md:w-1/4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Product Size*
+                </label>
+                <select
+                  value={item.product_size}
+                  onChange={(e) =>
+                    handleProductSelection(
+                      index,
+                      "product_size",
+                      e.target.value
+                    )
+                  }
+                  className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  required
+                >
+                  <option value="">Select Size</option>
+                  {productSizes.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="px-3 w-1/2 md:w-1/6">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
                   Cases Returned
                 </label>
@@ -299,7 +381,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                 />
               </div>
 
-              <div className="px-3 w-1/2 md:w-1/4">
+              <div className="px-3 w-1/2 md:w-1/6">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
                   Bottles Returned
                 </label>
