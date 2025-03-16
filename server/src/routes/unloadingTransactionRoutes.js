@@ -3,7 +3,7 @@ const router = express.Router();
 const unloadingTransactionController = require("../controllers/unloadingTransactionController");
 
 // Get all unloading transactions
-router.get("/", unloadingTransactionController.getAllUnloadingTransactions);
+router.get("/", unloadingTransactionController.getRecentUnloadingTransactions);
 
 // Get a specific unloading transaction by ID
 router.get("/:id", unloadingTransactionController.getUnloadingTransactionById);

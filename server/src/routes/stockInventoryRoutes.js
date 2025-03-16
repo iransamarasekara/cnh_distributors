@@ -26,4 +26,6 @@ router.get(
 // Update stock quantity (for inventory adjustments)
 router.patch("/:id/quantity", stockInventoryController.updateStockQuantity);
 
+router.get("/history/:productId", stockInventoryController.getInventoryHistory);
+
 module.exports = router;

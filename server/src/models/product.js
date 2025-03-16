@@ -17,9 +17,9 @@ module.exports = (sequelize, DataTypes) => {
       });
 
       // Product has many DailySales
-      Product.hasMany(models.DailySales, {
+      Product.hasMany(models.DailySalesDetails, {
         foreignKey: "product_id",
-        as: "dailySales",
+        as: "dailySalesDetails",
       });
 
       // Product has one StockInventory

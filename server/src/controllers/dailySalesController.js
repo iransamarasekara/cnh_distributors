@@ -1,6 +1,7 @@
 const db = require("../models");
 const DailySales = db.DailySales;
 const { Op } = require("sequelize");
+const DailySalesDetails = db.DailySalesDetails;
 
 exports.getAllDailySales = async (req, res) => {
   try {
@@ -31,19 +32,12 @@ exports.getDailySalesById = async (req, res) => {
 
 exports.createDailySales = async (req, res) => {
   try {
-    const {
-      sales_date,
-      lorry_id,
-      product_id,
-      units_sold,
-      sales_income,
-      gross_profit,
-    } = req.body;
+    const { sales_date, lorry_id, units_sold, sales_income, gross_profit } =
+      req.body;
 
     const newDailySales = await DailySales.create({
       sales_date: sales_date || new Date(),
       lorry_id,
-      product_id,
       units_sold,
       sales_income,
       gross_profit,
@@ -122,11 +116,155 @@ exports.getDailySalesByLorryId = async (req, res) => {
 exports.getDailySalesByProductId = async (req, res) => {
   try {
     const { productId } = req.params;
-    const dailySales = await DailySales.findAll({
+    const dailySales = await DailySalesDetails.findAll({
       where: { product_id: productId },
     });
     res.status(200).json(dailySales);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+// Get daily sales for the summary overview report
+exports.getDailySales = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    // Build date filter if dates are provided
+    const dateFilter = {};
+    if (startDate && endDate) {
+      dateFilter.sales_date = {
+        [Op.between]: [startDate, endDate],
+      };
+    } else if (startDate) {
+      dateFilter.sales_date = {
+        [Op.gte]: startDate,
+      };
+    } else if (endDate) {
+      dateFilter.sales_date = {
+        [Op.lte]: endDate,
+      };
+    }
+
+    // Get sales details with product information
+    const salesDetails = await DailySalesDetails.findAll({
+      include: [
+        {
+          model: DailySales,
+          as: "dailySales",
+          where: dateFilter,
+          include: [
+            {
+              model: db.Lorry,
+              as: "lorry",
+              attributes: ["lorry_id", "lorry_number"],
+            },
+          ],
+        },
+        {
+          model: db.Product,
+          as: "product",
+          attributes: [
+            "product_id",
+            "product_name",
+            "size",
+            "bottles_per_case",
+            "unit_price",
+            "selling_price",
+          ],
+        },
+      ],
+    });
+
+    // Transform data to match the format needed in the SummeryOverview component
+    const transformedData = salesDetails.map((detail) => ({
+      product_id: detail.product_id,
+      lorry_id: detail.dailySales.lorry_id,
+      lorry_number: detail.dailySales.lorry.lorry_number,
+      sales_date: detail.dailySales.sales_date,
+      units_sold: detail.units_sold,
+      sales_income: detail.sales_income,
+      gross_profit: detail.gross_profit,
+      // Include product details for convenience
+      product_name: detail.product.product_name,
+      size: detail.product.size,
+      bottles_per_case: detail.product.bottles_per_case,
+      unit_price: detail.product.unit_price,
+      selling_price: detail.product.selling_price,
+    }));
+
+    res.status(200).json(transformedData);
+  } catch (error) {
+    console.error("Error fetching daily sales:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to fetch daily sales", error: error.message });
+  }
+};
+
+// Get consolidated daily sales (summed by product)
+exports.getConsolidatedDailySales = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    // Build date filter if dates are provided
+    const dateFilter = {};
+    if (startDate && endDate) {
+      dateFilter.sales_date = {
+        [Op.between]: [startDate, endDate],
+      };
+    } else if (startDate) {
+      dateFilter.sales_date = {
+        [Op.gte]: startDate,
+      };
+    } else if (endDate) {
+      dateFilter.sales_date = {
+        [Op.lte]: endDate,
+      };
+    }
+
+    // Get all sales details within the period
+    const salesDetails = await DailySalesDetails.findAll({
+      include: [
+        {
+          model: DailySales,
+          as: "dailySales",
+          where: dateFilter,
+          attributes: ["sales_date"],
+        },
+      ],
+      attributes: [
+        "product_id",
+        [sequelize.fn("SUM", sequelize.col("units_sold")), "units_sold"],
+        [sequelize.fn("SUM", sequelize.col("sales_income")), "sales_income"],
+        [sequelize.fn("SUM", sequelize.col("gross_profit")), "gross_profit"],
+      ],
+      group: ["product_id"],
+      include: [
+        {
+          model: Product,
+          as: "product",
+          attributes: ["product_name", "size", "bottles_per_case"],
+        },
+      ],
+    });
+
+    const consolidatedData = salesDetails.map((detail) => ({
+      product_id: detail.product_id,
+      product_name: detail.product.product_name,
+      size: detail.product.size,
+      bottles_per_case: detail.product.bottles_per_case,
+      units_sold: parseInt(detail.dataValues.units_sold, 10),
+      sales_income: parseFloat(detail.dataValues.sales_income),
+      gross_profit: parseFloat(detail.dataValues.gross_profit),
+    }));
+
+    res.status(200).json(consolidatedData);
+  } catch (error) {
+    console.error("Error fetching consolidated daily sales:", error);
+    res.status(500).json({
+      message: "Failed to fetch consolidated daily sales",
+      error: error.message,
+    });
   }
 };

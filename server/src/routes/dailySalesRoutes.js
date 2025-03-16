@@ -2,8 +2,14 @@ const express = require("express");
 const router = express.Router();
 const dailySalesController = require("../controllers/dailySalesController");
 
+// Get all daily sales details
+router.get("/", dailySalesController.getDailySales);
+
+// Get consolidated sales by product
+router.get("/consolidated", dailySalesController.getConsolidatedDailySales);
+
 // Get all daily sales records
-router.get("/", dailySalesController.getAllDailySales);
+router.get("/all", dailySalesController.getAllDailySales);
 
 // Get a specific daily sales record by ID
 router.get("/:id", dailySalesController.getDailySalesById);
