@@ -641,19 +641,28 @@ const InventoryReportsPage = () => {
 
                   {/* Financial Info */}
                   <td className="px-2 py-2 text-sm text-gray-900 text-center">
-                    {item.total_bottles}
+                    {item.total_bottles.toLocaleString()}
                   </td>
                   <td className="px-2 py-2 text-sm text-gray-900 text-right">
-                    {item.total_value.toFixed(2)}
+                    {item.total_value.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </td>
                   <td className="px-2 py-2 text-sm text-gray-900 text-center">
-                    {item.no_of_sale_units}
+                    {item.no_of_sale_units.toLocaleString()}
                   </td>
                   <td className="px-2 py-2 text-sm text-gray-900 text-right">
-                    {item.sale_income.toFixed(2)}
+                    {item.sale_income.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </td>
                   <td className="px-2 pr-4 py-2 text-sm text-gray-900 text-right">
-                    {item.gross_profit.toFixed(2)}
+                    {item.gross_profit.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </td>
                 </tr>
               ))
@@ -676,43 +685,51 @@ const InventoryReportsPage = () => {
                   Totals:
                 </td>
                 <td className="px-2 py-2 text-sm text-center">
-                  {consolidatedData.reduce(
-                    (total, item) => total + item.current_stock_case,
-                    0
-                  )}
+                  {consolidatedData
+                    .reduce((total, item) => total + item.current_stock_case, 0)
+                    .toLocaleString()}
                 </td>
                 <td className="px-2 py-2 text-sm text-center">
-                  {consolidatedData.reduce(
-                    (total, item) => total + item.current_stock_bottles,
-                    0
-                  )}
+                  {consolidatedData
+                    .reduce(
+                      (total, item) => total + item.current_stock_bottles,
+                      0
+                    )
+                    .toLocaleString()}
                 </td>
                 <td className="px-2 py-2 text-sm text-center">
-                  {consolidatedData.reduce(
-                    (total, item) => total + item.total_bottles,
-                    0
-                  )}
+                  {consolidatedData
+                    .reduce((total, item) => total + item.total_bottles, 0)
+                    .toLocaleString()}
                 </td>
                 <td className="px-2 py-2 text-sm text-right">
                   {consolidatedData
                     .reduce((total, item) => total + item.total_value, 0)
-                    .toFixed(2)}
+                    .toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                 </td>
                 <td className="px-2 py-2 text-sm text-center">
-                  {consolidatedData.reduce(
-                    (total, item) => total + item.no_of_sale_units,
-                    0
-                  )}
+                  {consolidatedData
+                    .reduce((total, item) => total + item.no_of_sale_units, 0)
+                    .toLocaleString()}
                 </td>
                 <td className="px-2 py-2 text-sm text-right">
                   {consolidatedData
                     .reduce((total, item) => total + item.sale_income, 0)
-                    .toFixed(2)}
+                    .toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                 </td>
                 <td className="px-2 pr-4 py-2 text-sm text-right">
                   {consolidatedData
                     .reduce((total, item) => total + item.gross_profit, 0)
-                    .toFixed(2)}
+                    .toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                 </td>
               </tr>
             )}

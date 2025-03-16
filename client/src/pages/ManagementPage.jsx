@@ -63,6 +63,7 @@ const ManagementPage = () => {
     try {
       setIsLoading(true);
       const queryParams = new URLSearchParams();
+      if (!filters.sortBy) queryParams.append("sortBy", "Size");
       if (filters.size) queryParams.append("size", filters.size);
       if (filters.brand) queryParams.append("brand", filters.brand);
       if (filters.sortBy) queryParams.append("sortBy", filters.sortBy);

@@ -359,7 +359,14 @@ const LoadingUnloadingHistory = ({ selectedLorry, dateRange }) => {
                               <td className="py-2 px-3">{bottles}</td>
                               <td className="py-2 px-3">{totalBottles}</td>
                               <td className="py-2 px-3">
-                                Rs {parseFloat(detail.value).toFixed(2)}
+                                Rs{" "}
+                                {parseFloat(detail.value).toLocaleString(
+                                  undefined,
+                                  {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  }
+                                )}
                               </td>
                             </tr>
                           );
