@@ -454,7 +454,7 @@ async function createDailySalesFromUnloading(
 
     // Create detailed sales records for each product
     for (const item of salesItems) {
-      await db.DailySalesDetail.create(
+      await db.DailySalesDetails.create(
         {
           sales_id: dailySales.sales_id,
           product_id: item.product_id,

@@ -15,7 +15,6 @@ const LoadingManagementPage = () => {
   const [inventoryData, setInventoryData] = useState([]);
   const [lorryData, setLorryData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   // For filters
   // const [availableProducts, setAvailableProducts] = useState([]);
@@ -37,9 +36,7 @@ const LoadingManagementPage = () => {
         setIsLoading(true);
         const response = await axios.get(`${API_URL}/stock-inventory`); ////////////////
         setInventoryData(response.data);
-        setError(null);
       } catch (err) {
-        setError("Failed to fetch inventory data");
         console.error(err);
       } finally {
         setIsLoading(false);
@@ -99,10 +96,7 @@ const LoadingManagementPage = () => {
       // Refresh lorry data if needed
       const lorryResponse = await axios.get(`${API_URL}/lorries`);
       setLorryData(lorryResponse.data);
-
-      setError(null);
     } catch (err) {
-      setError("Failed to refresh data");
       console.error(err);
     } finally {
       setIsLoading(false);

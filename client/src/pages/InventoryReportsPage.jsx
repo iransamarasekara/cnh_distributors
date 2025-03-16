@@ -117,7 +117,7 @@ const InventoryReportsPage = () => {
     const lorryIds = lorryData.map((lorry) => lorry.lorry_id);
 
     // Initialize lorry data structure for each product
-    productMap.forEach((productData, productId) => {
+    productMap.forEach((productData) => {
       lorryIds.forEach((lorryId) => {
         const lorryNumber =
           lorryData.find((l) => l.lorry_id === lorryId)?.lorry_number ||
@@ -215,13 +215,13 @@ const InventoryReportsPage = () => {
   const lorryIds = lorryData.map((lorry) => lorry.lorry_id);
 
   // Format number as currency
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-    }).format(value || 0);
-  };
+  //   const formatCurrency = (value) => {
+  //     return new Intl.NumberFormat("en-US", {
+  //       style: "currency",
+  //       currency: "LKR",
+  //       minimumFractionDigits: 2,
+  //     }).format(value || 0);
+  //   };
 
   // Download CSV function
   const downloadCSV = () => {
@@ -569,13 +569,13 @@ const InventoryReportsPage = () => {
 
                   {/* Price Details */}
                   <td className="px-2 py-2 text-sm text-gray-900 text-center">
-                    {formatCurrency(item.unit_price)}
+                    {item.unit_price.toFixed(2)}
                   </td>
                   <td className="px-2 py-2 text-sm text-gray-900 text-center">
-                    {formatCurrency(item.selling_price)}
+                    {item.selling_price.toFixed(2)}
                   </td>
                   <td className="px-2 py-2 text-sm text-gray-900 text-center">
-                    {item.profit_margin}%
+                    {item.profit_margin}
                   </td>
 
                   {/* Lorry Data */}
@@ -619,14 +619,14 @@ const InventoryReportsPage = () => {
                   <td className="px-2 py-2 text-sm text-gray-900 text-center">
                     {item.total_bottles}
                   </td>
-                  <td className="px-2 py-2 text-sm text-gray-900 text-center">
-                    {formatCurrency(item.total_value)}
+                  <td className="px-2 py-2 text-sm text-gray-900 text-right">
+                    {item.total_value.toFixed(2)}
                   </td>
                   <td className="px-2 py-2 text-sm text-gray-900 text-center">
                     {item.no_of_sale_units}
                   </td>
-                  <td className="px-2 py-2 text-sm text-gray-900 text-center">
-                    {formatCurrency(item.sale_income)}
+                  <td className="px-2 pr-4 py-2 text-sm text-gray-900 text-right">
+                    {item.sale_income.toFixed(2)}
                   </td>
                 </tr>
               ))
