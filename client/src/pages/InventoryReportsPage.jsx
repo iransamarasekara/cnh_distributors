@@ -89,11 +89,7 @@ const InventoryReportsPage = () => {
         // Price Details
         profit_margin:
           product.selling_price && product.unit_price
-            ? (
-                ((product.selling_price - product.unit_price) /
-                  product.unit_price) *
-                100
-              ).toFixed(2)
+            ? (product.selling_price - product.unit_price).toFixed(2)
             : 0,
         case_price: product.unit_price * (product.bottles_per_case || 0),
 
@@ -274,7 +270,7 @@ const InventoryReportsPage = () => {
         item.case_of_bottle,
         item.unit_price,
         item.selling_price,
-        `${item.profit_margin}%`,
+        item.profit_margin,
       ];
 
       // Add lorry data
