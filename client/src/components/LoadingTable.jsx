@@ -234,10 +234,10 @@ const LoadingTable = ({ selectedLorry, dateRange }) => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Detail ID
+                      Brand
                     </th>
                     <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Brand
+                      Size
                     </th>
                     <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Cases Loaded
@@ -262,11 +262,13 @@ const LoadingTable = ({ selectedLorry, dateRange }) => {
                         className="hover:bg-gray-50"
                       >
                         <td className="py-2 px-4 text-sm text-gray-900">
-                          {detail.loading_detail_id}
+                          {detail.product
+                            ? detail.product.product_name
+                            : `Missing product (ID: ${detail.product_id})`}
                         </td>
                         <td className="py-2 px-4 text-sm text-gray-900">
                           {detail.product
-                            ? detail.product.product_name
+                            ? detail.product.size
                             : `Missing product (ID: ${detail.product_id})`}
                         </td>
                         <td className="py-2 px-4 text-sm text-gray-900">
