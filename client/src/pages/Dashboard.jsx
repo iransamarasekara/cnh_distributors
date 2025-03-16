@@ -434,8 +434,8 @@ const Dashboard = () => {
                 <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-5 rounded-xl text-white shadow-md">
                   <div className="flex justify-between items-center mb-2">
                     <p className="font-medium">Total Bottles</p>
-                    <div className="bg-white bg-opacity-20 p-2 rounded-lg">
-                      <Package size={20} className="text-white" />
+                    <div className="bg-blue-200 bg-opacity-20 p-2 rounded-lg">
+                      <Package size={20} className="text-blue-500" />
                     </div>
                   </div>
                   <p className="text-3xl font-bold">
@@ -450,8 +450,8 @@ const Dashboard = () => {
                 <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-5 rounded-xl text-white shadow-md">
                   <div className="flex justify-between items-center mb-2">
                     <p className="font-medium">Inventory Value</p>
-                    <div className="bg-white bg-opacity-20 p-2 rounded-lg">
-                      <DollarSign size={20} className="text-white" />
+                    <div className="bg-pink-200 bg-opacity-20 p-2 rounded-lg">
+                      <DollarSign size={20} className="text-pink-500" />
                     </div>
                   </div>
                   <p className="text-3xl font-bold">

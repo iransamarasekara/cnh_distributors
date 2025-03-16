@@ -19,12 +19,7 @@ const InventoryManagementPage = () => {
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("");
 
-  const tabs = [
-    "Available Stock",
-    "Add New Stock",
-    "Stock History",
-    "Overview",
-  ];
+  const tabs = ["Available Stock", "Add New Stock", "Stock History"];
 
   // Fetch product data
   useEffect(() => {

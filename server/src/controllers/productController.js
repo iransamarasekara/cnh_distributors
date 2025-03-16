@@ -25,7 +25,7 @@ exports.getAllProducts = async (req, res) => {
     if (sortBy) {
       switch (sortBy) {
         case "Size":
-          order.push(["size", "ASC"]);
+          // We'll handle size sorting separately after query
           break;
         case "Brand":
           order.push(["product_name", "ASC"]);
@@ -51,7 +51,7 @@ exports.getAllProducts = async (req, res) => {
     });
 
     // Transform data for frontend
-    const transformedProducts = products.map((product) => {
+    let transformedProducts = products.map((product) => {
       const productJson = product.toJSON();
       const inventory = productJson.inventory || {};
 
@@ -69,6 +69,32 @@ exports.getAllProducts = async (req, res) => {
         last_updated: inventory.last_updated,
       };
     });
+
+    // Custom size sorting logic
+    if (sortBy === "Size") {
+      const sizeOrder = {
+        "175 mL": 1,
+        "250 mL": 2,
+        "300 mL": 3,
+        "355 mL": 4,
+        "400 mL": 5,
+        "500 mL": 6,
+        "750 mL": 7,
+        "1 L": 8,
+        "1050 mL": 9,
+        "1.5 L": 10,
+        "2 L": 11,
+      };
+
+      transformedProducts.sort((a, b) => {
+        // Default high value for sizes not in our predefined order
+        const aOrder =
+          sizeOrder[a.size] !== undefined ? sizeOrder[a.size] : 999;
+        const bOrder =
+          sizeOrder[b.size] !== undefined ? sizeOrder[b.size] : 999;
+        return aOrder - bOrder;
+      });
+    }
 
     res.status(200).json(transformedProducts);
   } catch (error) {
