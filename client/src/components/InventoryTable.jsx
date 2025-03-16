@@ -86,29 +86,38 @@ const InventoryTable = ({ inventoryData }) => {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
                   {item.bottles_per_case}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-right">
                   {item.unit_price.toFixed(2)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-right">
                   {item.selling_price.toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
                   {(item.selling_price - item.unit_price).toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
-                  {(item.selling_price * item.bottles_per_case).toFixed(2)}
+                  {(item.selling_price * item.bottles_per_case).toLocaleString(
+                    undefined,
+                    {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }
+                  )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-center">
                   {item.cases_qty}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-center">
                   {item.bottles_qty}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
-                  {item.total_bottles}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-center">
+                  {item.total_bottles.toLocaleString()}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
-                  {item.total_value.toFixed(2)}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-right">
+                  {item.total_value.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                 </td>
               </tr>
             </>
@@ -123,12 +132,17 @@ const InventoryTable = ({ inventoryData }) => {
               Total:
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-2 border-white">
-              {inventoryData.reduce((sum, item) => sum + item.total_bottles, 0)}
+              {inventoryData
+                .reduce((sum, item) => sum + item.total_bottles, 0)
+                .toLocaleString()}
             </td>
             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-2 border-white">
               {inventoryData
                 .reduce((sum, item) => sum + item.total_value, 0)
-                .toFixed(2)}
+                .toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
             </td>
           </tr>
         </tfoot>
