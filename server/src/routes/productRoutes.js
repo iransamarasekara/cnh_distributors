@@ -5,6 +5,12 @@ const productController = require("../controllers/productController");
 // Get all products
 router.get("/", productController.getAllProducts);
 
+// Get unique product sizes for filtering
+router.get("/sizes", productController.getProductSizes);
+
+// Get unique product brands for filtering
+router.get("/brands", productController.getProductBrands);
+
 // Get a specific product by ID
 router.get("/:id", productController.getProductById);
 
