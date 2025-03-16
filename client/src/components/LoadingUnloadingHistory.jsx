@@ -52,6 +52,7 @@ const LoadingUnloadingHistory = ({ selectedLorry, dateRange }) => {
   }, [activeTab, selectedLorry, dateRange]);
 
   // Fetch transaction details when a transaction is selected
+  // Fetch transaction details when a transaction is selected
   useEffect(() => {
     const fetchTransactionDetails = async () => {
       if (!currentTransaction) return;
@@ -71,7 +72,40 @@ const LoadingUnloadingHistory = ({ selectedLorry, dateRange }) => {
           );
         }
 
-        setTransactionDetails(response.data);
+        // If details don't include product information, fetch it
+        const details = response.data;
+
+        if (details.length > 0 && !details[0].product) {
+          // Get unique product IDs from the details
+          const productIds = [
+            ...new Set(details.map((detail) => detail.product_id)),
+          ];
+
+          // Fetch product information
+          const productPromises = productIds.map((id) =>
+            axios.get(`${API_URL}/products/${id}`)
+          );
+
+          const productResponses = await Promise.all(productPromises);
+
+          // Create a map of product IDs to product objects
+          const productMap = {};
+          productResponses.forEach((response) => {
+            const product = response.data;
+            productMap[product.product_id] = product;
+          });
+
+          // Add product information to each detail
+          const detailsWithProducts = details.map((detail) => ({
+            ...detail,
+            product: productMap[detail.product_id] || null,
+          }));
+
+          setTransactionDetails(detailsWithProducts);
+        } else {
+          // If products are already included, use the response as is
+          setTransactionDetails(details);
+        }
       } catch (err) {
         console.error(
           `Failed to fetch ${activeTab.toLowerCase()} details:`,
@@ -188,7 +222,7 @@ const LoadingUnloadingHistory = ({ selectedLorry, dateRange }) => {
                               {activeTab} #{transactionId}
                             </p>
                             <p className="text-sm text-gray-500">
-                              Lorry ID: {transaction.lorry_id}
+                              Lorry Number: {transaction.lorry.lorry_number}
                             </p>
                           </div>
                           <div className="text-right">
@@ -234,8 +268,8 @@ const LoadingUnloadingHistory = ({ selectedLorry, dateRange }) => {
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Lorry ID</p>
-                    <p>{currentTransaction.lorry_id}</p>
+                    <p className="text-sm text-gray-500">Lorry Number</p>
+                    <p>{currentTransaction.lorry.lorry_number}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Date</p>
@@ -285,7 +319,7 @@ const LoadingUnloadingHistory = ({ selectedLorry, dateRange }) => {
                       <thead>
                         <tr className="bg-gray-50">
                           <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Product ID
+                            Product Name
                           </th>
                           <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase">
                             Cases
@@ -318,12 +352,14 @@ const LoadingUnloadingHistory = ({ selectedLorry, dateRange }) => {
 
                           return (
                             <tr key={index} className="hover:bg-gray-50">
-                              <td className="py-2 px-3">{detail.product_id}</td>
+                              <td className="py-2 px-3">
+                                {detail.product.product_name}
+                              </td>
                               <td className="py-2 px-3">{cases}</td>
                               <td className="py-2 px-3">{bottles}</td>
                               <td className="py-2 px-3">{totalBottles}</td>
                               <td className="py-2 px-3">
-                                ${parseFloat(detail.value).toFixed(2)}
+                                Rs {parseFloat(detail.value).toFixed(2)}
                               </td>
                             </tr>
                           );

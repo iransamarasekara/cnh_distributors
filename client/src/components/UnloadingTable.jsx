@@ -51,11 +51,48 @@ const UnloadingTable = ({ selectedLorry, dateRange }) => {
       setIsLoadingDetails(true);
       setSelectedUnloadingId(unloadingId);
 
-      const response = await axios.get(
+      // Get unloading details
+      const detailsResponse = await axios.get(
         `${API_URL}/unloading-details/transaction/${unloadingId}`
       );
 
-      setUnloadingDetails(response.data);
+      // If unloading details don't include product information, we need to fetch products
+      const details = detailsResponse.data;
+
+      // Check if we need to fetch product information
+      if (details.length > 0 && !details[0].product) {
+        // Get unique product IDs from the unloading details
+        const productIds = [
+          ...new Set(details.map((detail) => detail.product_id)),
+        ];
+
+        // Fetch product information for these IDs
+        const productPromises = productIds.map((id) =>
+          axios.get(`${API_URL}/products/${id}`)
+        );
+
+        // Wait for all product requests to complete
+        const productResponses = await Promise.all(productPromises);
+
+        // Create a map of product IDs to product objects
+        const productMap = {};
+        productResponses.forEach((response) => {
+          const product = response.data;
+          productMap[product.product_id] = product;
+        });
+
+        // Add product information to each detail
+        const detailsWithProducts = details.map((detail) => ({
+          ...detail,
+          product: productMap[detail.product_id] || null,
+        }));
+
+        setUnloadingDetails(detailsWithProducts);
+      } else {
+        // If products are already included, just use the response as is
+        setUnloadingDetails(details);
+      }
+
       setShowDetailsModal(true);
     } catch (err) {
       console.error("Failed to fetch unloading details:", err);
@@ -230,7 +267,9 @@ const UnloadingTable = ({ selectedLorry, dateRange }) => {
                         {detail.unloading_detail_id}
                       </td>
                       <td className="py-2 px-4 text-sm text-gray-900">
-                        {detail.product_id}
+                        {detail.product
+                          ? detail.product.product_name
+                          : `Product #${detail.product_id}`}
                       </td>
                       <td className="py-2 px-4 text-sm text-gray-900">
                         {detail.cases_returned}
@@ -242,7 +281,7 @@ const UnloadingTable = ({ selectedLorry, dateRange }) => {
                         {detail.total_bottles_returned}
                       </td>
                       <td className="py-2 px-4 text-sm text-gray-900">
-                        ${detail.value.toFixed(2)}
+                        Rs {detail.value.toFixed(2)}
                       </td>
                     </tr>
                   ))}
@@ -275,7 +314,7 @@ const UnloadingTable = ({ selectedLorry, dateRange }) => {
                       )}
                     </td>
                     <td className="py-2 px-4 text-sm font-semibold text-gray-900">
-                      $
+                      Rs{" "}
                       {unloadingDetails
                         .reduce((sum, detail) => sum + detail.value, 0)
                         .toFixed(2)}
