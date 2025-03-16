@@ -427,7 +427,12 @@ exports.getRecentLoadingTransactions = async (req, res) => {
             {
               model: db.Product,
               as: "product",
-              attributes: ["product_id", "product_name", "bottles_per_case"],
+              attributes: [
+                "product_id",
+                "product_name",
+                "bottles_per_case",
+                "size",
+              ],
             },
           ],
         },
