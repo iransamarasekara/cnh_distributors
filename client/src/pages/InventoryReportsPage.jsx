@@ -202,7 +202,32 @@ const InventoryReportsPage = () => {
       }
     });
 
-    return Array.from(productMap.values());
+    // Convert Map to Array and sort by product size
+    const resultArray = Array.from(productMap.values());
+
+    // Sort by size (formats like "175 mL", "250 mL", "400 mL")
+    return resultArray.sort((a, b) => {
+      // Extract the numeric value from the size string
+      const extractSizeValue = (size) => {
+        // Default value if we can't parse
+        if (!size || size === "Standard") {
+          return 9999; // Place "Standard" at the end
+        }
+
+        // Convert to string in case it's a number already
+        const sizeStr = String(size).trim();
+
+        // Use regex to extract numeric part
+        const match = sizeStr.match(/(\d+)/);
+        if (match && match[1]) {
+          return parseInt(match[1], 10);
+        }
+
+        return 9999; // Default high value for unparseable sizes
+      };
+
+      return extractSizeValue(a.size) - extractSizeValue(b.size);
+    });
   };
 
   const consolidatedData = processConsolidatedData();
@@ -473,7 +498,7 @@ const InventoryReportsPage = () => {
 
               {/* Financial Info - Header */}
               <th
-                colSpan="4"
+                colSpan="5"
                 className="px-2 py-2 bg-green-100 text-center text-xs font-medium text-gray-700 uppercase"
               >
                 Financial Info
@@ -541,6 +566,9 @@ const InventoryReportsPage = () => {
               </th>
               <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">
                 Sale Income
+              </th>
+              <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">
+                Gross Profit
               </th>
             </tr>
           </thead>
@@ -621,8 +649,11 @@ const InventoryReportsPage = () => {
                   <td className="px-2 py-2 text-sm text-gray-900 text-center">
                     {item.no_of_sale_units}
                   </td>
-                  <td className="px-2 pr-4 py-2 text-sm text-gray-900 text-right">
+                  <td className="px-2 py-2 text-sm text-gray-900 text-right">
                     {item.sale_income.toFixed(2)}
+                  </td>
+                  <td className="px-2 pr-4 py-2 text-sm text-gray-900 text-right">
+                    {item.gross_profit.toFixed(2)}
                   </td>
                 </tr>
               ))
@@ -633,6 +664,55 @@ const InventoryReportsPage = () => {
                   className="px-6 py-4 text-center text-gray-500"
                 >
                   No data available for the selected period
+                </td>
+              </tr>
+            )}
+            {consolidatedData.length > 0 && (
+              <tr className="bg-gray-100 font-bold">
+                <td
+                  colSpan={6 + lorryIds.length * 4}
+                  className="px-2 py-2 text-right text-sm"
+                >
+                  Totals:
+                </td>
+                <td className="px-2 py-2 text-sm text-center">
+                  {consolidatedData.reduce(
+                    (total, item) => total + item.current_stock_case,
+                    0
+                  )}
+                </td>
+                <td className="px-2 py-2 text-sm text-center">
+                  {consolidatedData.reduce(
+                    (total, item) => total + item.current_stock_bottles,
+                    0
+                  )}
+                </td>
+                <td className="px-2 py-2 text-sm text-center">
+                  {consolidatedData.reduce(
+                    (total, item) => total + item.total_bottles,
+                    0
+                  )}
+                </td>
+                <td className="px-2 py-2 text-sm text-right">
+                  {consolidatedData
+                    .reduce((total, item) => total + item.total_value, 0)
+                    .toFixed(2)}
+                </td>
+                <td className="px-2 py-2 text-sm text-center">
+                  {consolidatedData.reduce(
+                    (total, item) => total + item.no_of_sale_units,
+                    0
+                  )}
+                </td>
+                <td className="px-2 py-2 text-sm text-right">
+                  {consolidatedData
+                    .reduce((total, item) => total + item.sale_income, 0)
+                    .toFixed(2)}
+                </td>
+                <td className="px-2 pr-4 py-2 text-sm text-right">
+                  {consolidatedData
+                    .reduce((total, item) => total + item.gross_profit, 0)
+                    .toFixed(2)}
                 </td>
               </tr>
             )}

@@ -43,16 +43,54 @@ const LoadingTable = ({ selectedLorry, dateRange }) => {
     fetchLoadingData();
   }, [selectedLorry, dateRange]);
 
+  // Modify your fetchLoadingDetails function to include product information
   const fetchLoadingDetails = async (loadingId) => {
     try {
       setIsLoadingDetails(true);
       setSelectedLoadingId(loadingId);
 
-      const response = await axios.get(
+      // Get loading details
+      const detailsResponse = await axios.get(
         `${API_URL}/loading-details/transaction/${loadingId}`
       );
 
-      setLoadingDetails(response.data);
+      // If loading details don't include product information, we need to fetch products
+      const details = detailsResponse.data;
+
+      // Check if we need to fetch product information (if the first item doesn't have product)
+      if (details.length > 0 && !details[0].product) {
+        // Get unique product IDs from the loading details
+        const productIds = [
+          ...new Set(details.map((detail) => detail.product_id)),
+        ];
+
+        // Fetch product information for these IDs
+        const productPromises = productIds.map((id) =>
+          axios.get(`${API_URL}/products/${id}`)
+        );
+
+        // Wait for all product requests to complete
+        const productResponses = await Promise.all(productPromises);
+
+        // Create a map of product IDs to product objects
+        const productMap = {};
+        productResponses.forEach((response) => {
+          const product = response.data;
+          productMap[product.product_id] = product;
+        });
+
+        // Add product information to each detail
+        const detailsWithProducts = details.map((detail) => ({
+          ...detail,
+          product: productMap[detail.product_id] || null,
+        }));
+
+        setLoadingDetails(detailsWithProducts);
+      } else {
+        // If products are already included, just use the response as is
+        setLoadingDetails(details);
+      }
+
       setShowDetailsModal(true);
     } catch (err) {
       console.error("Failed to fetch loading details:", err);
@@ -199,7 +237,7 @@ const LoadingTable = ({ selectedLorry, dateRange }) => {
                       Detail ID
                     </th>
                     <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Product ID
+                      Brand
                     </th>
                     <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Cases Loaded
@@ -216,31 +254,36 @@ const LoadingTable = ({ selectedLorry, dateRange }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {loadingDetails.map((detail) => (
-                    <tr
-                      key={detail.loading_detail_id}
-                      className="hover:bg-gray-50"
-                    >
-                      <td className="py-2 px-4 text-sm text-gray-900">
-                        {detail.loading_detail_id}
-                      </td>
-                      <td className="py-2 px-4 text-sm text-gray-900">
-                        {detail.product_id}
-                      </td>
-                      <td className="py-2 px-4 text-sm text-gray-900">
-                        {detail.cases_loaded}
-                      </td>
-                      <td className="py-2 px-4 text-sm text-gray-900">
-                        {detail.bottles_loaded}
-                      </td>
-                      <td className="py-2 px-4 text-sm text-gray-900">
-                        {detail.total_bottles_loaded}
-                      </td>
-                      <td className="py-2 px-4 text-sm text-gray-900">
-                        ${detail.value.toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
+                  {loadingDetails.map((detail, index) => {
+                    console.log(`Detail at index ${index}:`, detail);
+                    return (
+                      <tr
+                        key={detail.loading_detail_id}
+                        className="hover:bg-gray-50"
+                      >
+                        <td className="py-2 px-4 text-sm text-gray-900">
+                          {detail.loading_detail_id}
+                        </td>
+                        <td className="py-2 px-4 text-sm text-gray-900">
+                          {detail.product
+                            ? detail.product.product_name
+                            : `Missing product (ID: ${detail.product_id})`}
+                        </td>
+                        <td className="py-2 px-4 text-sm text-gray-900">
+                          {detail.cases_loaded}
+                        </td>
+                        <td className="py-2 px-4 text-sm text-gray-900">
+                          {detail.bottles_loaded}
+                        </td>
+                        <td className="py-2 px-4 text-sm text-gray-900">
+                          {detail.total_bottles_loaded}
+                        </td>
+                        <td className="py-2 px-4 text-sm text-gray-900">
+                          Rs {detail.value.toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
                 {/* Summary row */}
                 <tfoot className="bg-gray-50">
@@ -270,7 +313,7 @@ const LoadingTable = ({ selectedLorry, dateRange }) => {
                       )}
                     </td>
                     <td className="py-2 px-4 text-sm font-semibold text-gray-900">
-                      $
+                      Rs{" "}
                       {loadingDetails
                         .reduce((sum, detail) => sum + detail.value, 0)
                         .toFixed(2)}

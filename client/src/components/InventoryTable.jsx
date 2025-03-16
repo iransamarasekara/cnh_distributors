@@ -114,6 +114,24 @@ const InventoryTable = ({ inventoryData }) => {
             </>
           ))}
         </tbody>
+        <tfoot>
+          <tr className="bg-blue-200">
+            <td
+              colSpan="10"
+              className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-2 border-white text-right"
+            >
+              Total:
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-2 border-white">
+              {inventoryData.reduce((sum, item) => sum + item.total_bottles, 0)}
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-2 border-white">
+              {inventoryData
+                .reduce((sum, item) => sum + item.total_value, 0)
+                .toFixed(2)}
+            </td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   );

@@ -10,7 +10,7 @@ import NotFound from "./pages/NotFound";
 import InventoryManagementPage from "./pages/InventoryManagementPage";
 import LoadingManagementPage from "./pages/LoadingManagementPage";
 import InventoryReportsPage from "./pages/InventoryReportsPage";
-import ManagePage from "./pages/ManagePage";
+import ManagementPage from "./pages/ManagementPage";
 
 const AppLayout = ({ children }) => (
   <div className="flex h-screen bg-blue-1">
@@ -70,7 +70,7 @@ const App = () => {
               path="/manage"
               element={
                 <AppLayout>
-                  <ManagePage />
+                  <ManagementPage />
                 </AppLayout>
               }
             />
