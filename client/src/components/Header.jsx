@@ -1,5 +1,5 @@
 import React from "react";
-import { BellIcon, PencilIcon } from "@heroicons/react/24/outline";
+import { BellIcon, PencilIcon, UserIcon } from "@heroicons/react/24/outline";
 
 const Header = () => {
   return (
@@ -28,7 +28,7 @@ const Header = () => {
           />
         </div>
         <div className="flex items-center space-x-4 ml-4">
-          <button className="flex items-center px-3 py-1.5 bg-gray-500 text-white rounded-md text-sm">
+          <button className="flex items-center px-3 py-1.5 bg-blue-500 text-white rounded-md text-sm">
             <span className="mr-1">+</span>
             <span>Create</span>
           </button>
@@ -39,6 +39,7 @@ const Header = () => {
             <PencilIcon className="h-6 w-6" />
           </button>
           <button className="h-8 w-8 rounded-full bg-gray-500 text-white flex items-center justify-center">
+            <UserIcon className="h-5 w-5" />
             <span className="sr-only">User profile</span>
           </button>
         </div>
