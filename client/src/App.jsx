@@ -9,7 +9,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 import InventoryManagementPage from "./pages/InventoryManagementPage";
 import LoadingManagementPage from "./pages/LoadingManagementPage";
-import ReportsPage from "./pages/ReportsPage";
+import InventoryReportsPage from "./pages/InventoryReportsPage";
 import ManagePage from "./pages/ManagePage";
 
 const AppLayout = ({ children }) => (
@@ -62,7 +62,7 @@ const App = () => {
               path="/reports"
               element={
                 <AppLayout>
-                  <ReportsPage />
+                  <InventoryReportsPage />
                 </AppLayout>
               }
             />

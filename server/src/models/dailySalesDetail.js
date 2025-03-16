@@ -2,40 +2,44 @@
 const { Model } = require("sequelize");
 
 module.exports = (sequelize, DataTypes) => {
-  class DailySales extends Model {
+  class DailySalesDetails extends Model {
     static associate(models) {
-      // DailySales belongs to one Lorry
-      DailySales.belongsTo(models.Lorry, {
-        foreignKey: "lorry_id",
-        as: "lorry",
+      // DailySalesDetail belongs to one DailySales
+      DailySalesDetails.belongsTo(models.DailySales, {
+        foreignKey: "sales_id",
+        as: "dailySales",
       });
 
-      // DailySales has many DailySalesDetails
-      DailySales.hasMany(models.DailySalesDetails, {
-        foreignKey: "sales_id",
-        as: "salesDetails",
+      // DailySalesDetail belongs to one Product
+      DailySalesDetails.belongsTo(models.Product, {
+        foreignKey: "product_id",
+        as: "product",
       });
     }
   }
 
-  DailySales.init(
+  DailySalesDetails.init(
     {
-      sales_id: {
+      sales_detail_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
       },
-      sales_date: {
-        type: DataTypes.DATEONLY,
-        allowNull: false,
-      },
-      lorry_id: {
+      sales_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-          model: "Lorries",
-          key: "lorry_id",
+          model: "DailySales",
+          key: "sales_id",
+        },
+      },
+      product_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+          model: "Products",
+          key: "product_id",
         },
       },
       units_sold: {
@@ -53,12 +57,12 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      modelName: "DailySales",
-      tableName: "DailySales",
+      modelName: "DailySalesDetails",
+      tableName: "DailySalesDetails",
       timestamps: true,
       underscored: true,
     }
   );
 
-  return DailySales;
+  return DailySalesDetails;
 };

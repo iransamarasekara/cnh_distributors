@@ -30,7 +30,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
     loading_date: new Date().toISOString().split("T")[0],
     loading_time: new Date().toTimeString().split(" ")[0],
     loaded_by: "",
-    status: "Pending",
+    status: "Completed",
   });
 
   // Get the inventory data keyed by product_id for easier lookup
@@ -284,7 +284,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
         loading_date: new Date().toISOString().split("T")[0],
         loading_time: new Date().toTimeString().split(" ")[0],
         loaded_by: "",
-        status: "Pending",
+        status: "Completed",
       });
       setLoadingItems([
         {
@@ -409,10 +409,9 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
               value={formData.status}
               onChange={handleInputChange}
               className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              disabled
             >
-              <option value="Pending">Pending</option>
               <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
             </select>
           </div>
         </div>

@@ -33,13 +33,11 @@ const Sidebar = () => {
     {
       icon: <DocumentChartBarIcon className="w-5 h-5" />,
       label: "Reports",
-      hasDropdown: true,
       url: "/reports",
     },
     {
       icon: <UserGroupIcon className="w-5 h-5" />,
       label: "Manage",
-      hasDropdown: true,
       url: "/manage",
     },
   ];

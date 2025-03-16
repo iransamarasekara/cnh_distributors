@@ -27,7 +27,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
     unloading_date: new Date().toISOString().split("T")[0],
     unloading_time: new Date().toTimeString().split(" ")[0],
     unloaded_by: "",
-    status: "Pending",
+    status: "Completed",
   });
 
   // Fetch lorries and products on component mount
@@ -175,7 +175,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
         unloading_date: new Date().toISOString().split("T")[0],
         unloading_time: new Date().toTimeString().split(" ")[0],
         unloaded_by: "",
-        status: "Pending",
+        status: "Completed",
       });
       setUnloadingItems([
         {
@@ -298,10 +298,9 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
               value={formData.status}
               onChange={handleInputChange}
               className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              disabled
             >
-              <option value="Pending">Pending</option>
               <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
             </select>
           </div>
         </div>

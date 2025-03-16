@@ -124,20 +124,43 @@ exports.createLoadingTransaction = async (req, res) => {
           );
         }
 
-        // Calculate new inventory quantities
-        const newCasesQty = stockInventory.cases_qty - detail.cases_loaded;
-        const newBottlesQty =
-          stockInventory.bottles_qty - detail.bottles_loaded;
+        // Get bottles per case
+        const bottlesPerCase = stockInventory.bottles_per_case || 12; // Default or get from product
 
-        // Validate that we have enough stock
+        // Initialize adjusted quantities with requested quantities
+        let adjustedCasesLoaded = detail.cases_loaded;
+        let adjustedBottlesLoaded = detail.bottles_loaded;
+
+        // Check if we need to convert cases to bottles
+        while (
+          adjustedBottlesLoaded > stockInventory.bottles_qty &&
+          stockInventory.cases_qty > adjustedCasesLoaded
+        ) {
+          // Open a case
+          adjustedCasesLoaded++;
+          adjustedBottlesLoaded -= bottlesPerCase;
+        }
+
+        // If we still don't have enough bottles (and we've used all cases)
+        if (adjustedBottlesLoaded > stockInventory.bottles_qty) {
+          throw new Error(
+            `Insufficient stock for product ID: ${detail.product_id}. Available: ${stockInventory.cases_qty} cases and ${stockInventory.bottles_qty} bottles. Requested: ${detail.cases_loaded} cases and ${detail.bottles_loaded} bottles.`
+          );
+        }
+
+        // Calculate new inventory quantities
+        const newCasesQty = stockInventory.cases_qty - adjustedCasesLoaded;
+        const newBottlesQty =
+          stockInventory.bottles_qty - adjustedBottlesLoaded;
+
+        // Double check that we have enough stock (should never fail at this point)
         if (newCasesQty < 0 || newBottlesQty < 0) {
           throw new Error(
-            `Insufficient stock for product ID: ${detail.product_id}`
+            `Calculation error resulted in negative inventory for product ID: ${detail.product_id}`
           );
         }
 
         // Calculate total bottles and value
-        const bottlesPerCase = stockInventory.bottles_per_case || 12; // Default or get from product
         const newTotalBottles = newCasesQty * bottlesPerCase + newBottlesQty;
 
         // Calculate value per bottle (if total_bottles is 0, use a fallback to avoid division by zero)
@@ -160,18 +183,19 @@ exports.createLoadingTransaction = async (req, res) => {
           { transaction: dbTransaction }
         );
 
-        // Record the transaction regardless of whether it's a new or existing inventory
+        // Calculate total bottles loaded (using original request values)
+        const totalBottlesLoaded =
+          detail.cases_loaded * bottlesPerCase + detail.bottles_loaded;
+
+        // Record the transaction
         await InventoryTransaction.create(
           {
             product_id: detail.product_id,
-            transaction_type: "REMOVE", // Both are ADD but logically different
+            transaction_type: "REMOVE",
             cases_qty: detail.cases_loaded,
             bottles_qty: detail.bottles_loaded,
-            total_bottles:
-              detail.cases_loaded * bottlesPerCase + detail.bottles_loaded,
-            total_value:
-              (detail.cases_loaded * bottlesPerCase + detail.bottles_loaded) *
-              valuePerBottle,
+            total_bottles: totalBottlesLoaded,
+            total_value: totalBottlesLoaded * valuePerBottle,
             notes: "Loading transaction",
             transaction_date: new Date(),
           },
@@ -185,11 +209,8 @@ exports.createLoadingTransaction = async (req, res) => {
             product_id: detail.product_id,
             cases_loaded: detail.cases_loaded,
             bottles_loaded: detail.bottles_loaded,
-            total_bottles_loaded:
-              detail.cases_loaded * bottlesPerCase + detail.bottles_loaded,
-            value:
-              (detail.cases_loaded * bottlesPerCase + detail.bottles_loaded) *
-              valuePerBottle,
+            total_bottles_loaded: totalBottlesLoaded,
+            value: totalBottlesLoaded * valuePerBottle,
           },
           { transaction: dbTransaction }
         );
@@ -322,17 +343,17 @@ exports.deleteLoadingTransaction = async (req, res) => {
   }
 };
 
-exports.getLoadingTransactionsByLorryId = async (req, res) => {
-  try {
-    const { lorryId } = req.params;
-    const loadingTransactions = await LoadingTransaction.findAll({
-      where: { lorry_id: lorryId },
-    });
-    res.status(200).json(loadingTransactions);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+// exports.getLoadingTransactionsByLorryId = async (req, res) => {
+//   try {
+//     const { lorryId } = req.params;
+//     const loadingTransactions = await LoadingTransaction.findAll({
+//       where: { lorry_id: lorryId },
+//     });
+//     res.status(200).json(loadingTransactions);
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
 
 exports.getLoadingTransactionsByLorryId = async (req, res) => {
   try {
