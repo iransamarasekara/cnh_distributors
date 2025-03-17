@@ -75,7 +75,7 @@ const App = () => {
               }
             />
             {/* Add more protected routes here */}
-            {/* <Route path="/" element={<Navigate to="/dashboard" replace />} /> */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Route>
 
           {/* Not found route */}
