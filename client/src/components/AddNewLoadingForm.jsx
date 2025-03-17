@@ -168,7 +168,9 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
     }
 
     // Default bottles per case if not available
-    const bottlesPerCase = 12;
+    const bottlesPerCase = products.find(
+      (product) => product.product_id === productId
+    )?.bottles_per_case;
 
     let finalCases = parseInt(casesLoaded) || 0;
     let finalBottles = parseInt(bottlesLoaded) || 0;
