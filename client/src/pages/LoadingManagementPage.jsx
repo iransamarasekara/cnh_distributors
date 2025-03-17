@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import LoadingTable from "../components/LoadingTable";
 import UnloadingTable from "../components/UnloadingTable";
 import AddNewLoadingForm from "../components/AddNewLoadingForm";
@@ -26,8 +27,18 @@ const LoadingManagementPage = () => {
     endDate: null,
   });
   const [isOpen, setIsOpen] = useState(false);
+  const [searchParams] = useSearchParams();
 
   const tabs = ["Loading", "Unloading", "History"];
+
+  useEffect(() => {
+    searchParams.get("tab") &&
+      searchParams.get("tab") === "loading" &&
+      setActiveTab("Loading");
+    searchParams.get("tab") &&
+      searchParams.get("tab") === "unloading" &&
+      setActiveTab("Unloading");
+  }, [searchParams]);
 
   // Fetch inventory data for loading/unloading forms
   useEffect(() => {
