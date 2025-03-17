@@ -56,13 +56,45 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
         const response = await axios.get(`${API_URL}/products`);
         setProducts(response.data);
 
-        // Extract unique product names and sizes
+        // Define custom size order
+        const sizeOrder = {
+          "175 mL": 1,
+          "250 mL": 2,
+          "300 mL": 3,
+          "355 mL": 4,
+          "400 mL": 5,
+          "500 mL": 6,
+          "750 mL": 7,
+          "1 L": 8,
+          "1050 mL": 9,
+          "1.5 L": 10,
+          "2 L": 11,
+        };
+
+        // Extract unique product names and sort alphabetically
         const names = [
           ...new Set(response.data.map((product) => product.product_name)),
-        ];
+        ].sort();
+
+        // Extract unique sizes and sort by custom order
         const sizes = [
           ...new Set(response.data.map((product) => product.size)),
-        ];
+        ].sort((a, b) => {
+          // If both sizes are in the sizeOrder object, sort by their order value
+          if (sizeOrder[a] !== undefined && sizeOrder[b] !== undefined) {
+            return sizeOrder[a] - sizeOrder[b];
+          }
+          // If only one size is in the order, prioritize the one that is
+          else if (sizeOrder[a] !== undefined) {
+            return -1;
+          } else if (sizeOrder[b] !== undefined) {
+            return 1;
+          }
+          // If neither size is in the order, maintain alphabetical sorting
+          else {
+            return a.localeCompare(b);
+          }
+        });
 
         setProductNames(names);
         setProductSizes(sizes);
