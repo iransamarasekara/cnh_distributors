@@ -18,7 +18,7 @@ const Sidebar = () => {
     {
       icon: <Squares2X2Icon className="w-5 h-5" />,
       label: "Dashboard",
-      url: "/dashboard",
+      url: "/",
     },
     {
       icon: <CubeIcon className="w-5 h-5" />,
@@ -55,7 +55,7 @@ const Sidebar = () => {
     // Remove token from localStorage
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    
+
     // Redirect to login page
     navigate("/login");
   };
