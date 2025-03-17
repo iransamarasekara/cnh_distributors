@@ -238,10 +238,10 @@ const UnloadingTable = ({ selectedLorry, dateRange }) => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Detail ID
+                      Product ID
                     </th>
                     <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Product ID
+                      Size
                     </th>
                     <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Cases Unloaded
@@ -264,12 +264,14 @@ const UnloadingTable = ({ selectedLorry, dateRange }) => {
                       className="hover:bg-gray-50"
                     >
                       <td className="py-2 px-4 text-sm text-gray-900">
-                        {detail.unloading_detail_id}
-                      </td>
-                      <td className="py-2 px-4 text-sm text-gray-900">
                         {detail.product
                           ? detail.product.product_name
                           : `Product #${detail.product_id}`}
+                      </td>
+                      <td className="py-2 px-4 text-sm text-gray-900">
+                        {detail.product
+                          ? detail.product.size
+                          : `Missing product (ID: ${detail.product_id})`}
                       </td>
                       <td className="py-2 px-4 text-sm text-gray-900">
                         {detail.cases_returned}

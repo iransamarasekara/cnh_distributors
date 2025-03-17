@@ -202,31 +202,50 @@ const InventoryReportsPage = () => {
       }
     });
 
-    // Convert Map to Array and sort by product size
+    // Convert Map to Array
     const resultArray = Array.from(productMap.values());
 
-    // Sort by size (formats like "175 mL", "250 mL", "400 mL")
+    // Define custom size order
+    const sizeOrder = {
+      "175 mL": 1,
+      "250 mL": 2,
+      "300 mL": 3,
+      "355 mL": 4,
+      "400 mL": 5,
+      "500 mL": 6,
+      "750 mL": 7,
+      "1 L": 8,
+      "1050 mL": 9,
+      "1.5 L": 10,
+      "2 L": 11,
+      Standard: 999, // Place "Standard" at the end
+    };
+
+    // Sort by the custom size order
     return resultArray.sort((a, b) => {
-      // Extract the numeric value from the size string
-      const extractSizeValue = (size) => {
-        // Default value if we can't parse
-        if (!size || size === "Standard") {
-          return 9999; // Place "Standard" at the end
-        }
+      // Get the order value for each size, defaulting to a high number if not found
+      const sizeA = a.size || "Standard";
+      const sizeB = b.size || "Standard";
 
-        // Convert to string in case it's a number already
-        const sizeStr = String(size).trim();
+      const orderA = sizeOrder[sizeA] !== undefined ? sizeOrder[sizeA] : 500;
+      const orderB = sizeOrder[sizeB] !== undefined ? sizeOrder[sizeB] : 500;
 
-        // Use regex to extract numeric part
-        const match = sizeStr.match(/(\d+)/);
-        if (match && match[1]) {
-          return parseInt(match[1], 10);
-        }
+      // For sizes not in our predefined order, fall back to numeric sorting
+      if (orderA === 500 && orderB === 500) {
+        // Extract numeric values for comparison
+        const extractSizeValue = (size) => {
+          const sizeStr = String(size).trim();
+          const match = sizeStr.match(/(\d+)/);
+          if (match && match[1]) {
+            return parseInt(match[1], 10);
+          }
+          return 9999;
+        };
 
-        return 9999; // Default high value for unparseable sizes
-      };
+        return extractSizeValue(sizeA) - extractSizeValue(sizeB);
+      }
 
-      return extractSizeValue(a.size) - extractSizeValue(b.size);
+      return orderA - orderB;
     });
   };
 
@@ -641,19 +660,28 @@ const InventoryReportsPage = () => {
 
                   {/* Financial Info */}
                   <td className="px-2 py-2 text-sm text-gray-900 text-center">
-                    {item.total_bottles}
+                    {item.total_bottles.toLocaleString()}
                   </td>
                   <td className="px-2 py-2 text-sm text-gray-900 text-right">
-                    {item.total_value.toFixed(2)}
+                    {item.total_value.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </td>
                   <td className="px-2 py-2 text-sm text-gray-900 text-center">
-                    {item.no_of_sale_units}
+                    {item.no_of_sale_units.toLocaleString()}
                   </td>
                   <td className="px-2 py-2 text-sm text-gray-900 text-right">
-                    {item.sale_income.toFixed(2)}
+                    {item.sale_income.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </td>
                   <td className="px-2 pr-4 py-2 text-sm text-gray-900 text-right">
-                    {item.gross_profit.toFixed(2)}
+                    {item.gross_profit.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </td>
                 </tr>
               ))
@@ -676,43 +704,51 @@ const InventoryReportsPage = () => {
                   Totals:
                 </td>
                 <td className="px-2 py-2 text-sm text-center">
-                  {consolidatedData.reduce(
-                    (total, item) => total + item.current_stock_case,
-                    0
-                  )}
+                  {consolidatedData
+                    .reduce((total, item) => total + item.current_stock_case, 0)
+                    .toLocaleString()}
                 </td>
                 <td className="px-2 py-2 text-sm text-center">
-                  {consolidatedData.reduce(
-                    (total, item) => total + item.current_stock_bottles,
-                    0
-                  )}
+                  {consolidatedData
+                    .reduce(
+                      (total, item) => total + item.current_stock_bottles,
+                      0
+                    )
+                    .toLocaleString()}
                 </td>
                 <td className="px-2 py-2 text-sm text-center">
-                  {consolidatedData.reduce(
-                    (total, item) => total + item.total_bottles,
-                    0
-                  )}
+                  {consolidatedData
+                    .reduce((total, item) => total + item.total_bottles, 0)
+                    .toLocaleString()}
                 </td>
                 <td className="px-2 py-2 text-sm text-right">
                   {consolidatedData
                     .reduce((total, item) => total + item.total_value, 0)
-                    .toFixed(2)}
+                    .toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                 </td>
                 <td className="px-2 py-2 text-sm text-center">
-                  {consolidatedData.reduce(
-                    (total, item) => total + item.no_of_sale_units,
-                    0
-                  )}
+                  {consolidatedData
+                    .reduce((total, item) => total + item.no_of_sale_units, 0)
+                    .toLocaleString()}
                 </td>
                 <td className="px-2 py-2 text-sm text-right">
                   {consolidatedData
                     .reduce((total, item) => total + item.sale_income, 0)
-                    .toFixed(2)}
+                    .toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                 </td>
                 <td className="px-2 pr-4 py-2 text-sm text-right">
                   {consolidatedData
                     .reduce((total, item) => total + item.gross_profit, 0)
-                    .toFixed(2)}
+                    .toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                 </td>
               </tr>
             )}

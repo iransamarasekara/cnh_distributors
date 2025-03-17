@@ -302,7 +302,14 @@ const InventoryHistory = () => {
                       {transaction.total_bottles}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      Rs. {parseFloat(transaction.total_value).toFixed(2)}
+                      Rs.{" "}
+                      {parseFloat(transaction.total_value).toLocaleString(
+                        undefined,
+                        {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        }
+                      )}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500 max-w-md truncate">
                       {transaction.notes || "-"}

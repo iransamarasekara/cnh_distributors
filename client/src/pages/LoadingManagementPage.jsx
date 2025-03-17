@@ -27,7 +27,7 @@ const LoadingManagementPage = () => {
   });
   const [isOpen, setIsOpen] = useState(false);
 
-  const tabs = ["Loading", "Unloading", "History", "Overview"];
+  const tabs = ["Loading", "Unloading", "History"];
 
   // Fetch inventory data for loading/unloading forms
   useEffect(() => {

@@ -23,6 +23,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
       validationError: "",
     },
   ]);
+  const [loadedLorries, setLoadedLorries] = useState({});
 
   // Form state
   const [formData, setFormData] = useState({
@@ -39,7 +40,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
     return acc;
   }, {});
 
-  // Fetch lorries and products on component mount
+  // Fetch lorries, products, and active loading transactions on component mount
   useEffect(() => {
     const fetchLorries = async () => {
       try {
@@ -55,13 +56,45 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
         const response = await axios.get(`${API_URL}/products`);
         setProducts(response.data);
 
-        // Extract unique product names and sizes
+        // Define custom size order
+        const sizeOrder = {
+          "175 mL": 1,
+          "250 mL": 2,
+          "300 mL": 3,
+          "355 mL": 4,
+          "400 mL": 5,
+          "500 mL": 6,
+          "750 mL": 7,
+          "1 L": 8,
+          "1050 mL": 9,
+          "1.5 L": 10,
+          "2 L": 11,
+        };
+
+        // Extract unique product names and sort alphabetically
         const names = [
           ...new Set(response.data.map((product) => product.product_name)),
-        ];
+        ].sort();
+
+        // Extract unique sizes and sort by custom order
         const sizes = [
           ...new Set(response.data.map((product) => product.size)),
-        ];
+        ].sort((a, b) => {
+          // If both sizes are in the sizeOrder object, sort by their order value
+          if (sizeOrder[a] !== undefined && sizeOrder[b] !== undefined) {
+            return sizeOrder[a] - sizeOrder[b];
+          }
+          // If only one size is in the order, prioritize the one that is
+          else if (sizeOrder[a] !== undefined) {
+            return -1;
+          } else if (sizeOrder[b] !== undefined) {
+            return 1;
+          }
+          // If neither size is in the order, maintain alphabetical sorting
+          else {
+            return a.localeCompare(b);
+          }
+        });
 
         setProductNames(names);
         setProductSizes(sizes);
@@ -70,13 +103,51 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
       }
     };
 
+    const fetchActiveLoadingTransactions = async () => {
+      try {
+        // Fetch all loading transactions that are not unloaded
+        const response = await axios.get(
+          `${API_URL}/loading-transactions?status=active`
+        );
+
+        // Create a map of lorry_id to active loading transaction
+        const loadedLorriesMap = {};
+        response.data.forEach((transaction) => {
+          if (transaction.status !== "Unloaded") {
+            loadedLorriesMap[transaction.lorry_id] = transaction;
+          }
+        });
+
+        setLoadedLorries(loadedLorriesMap);
+      } catch (err) {
+        console.error("Failed to fetch active loading transactions:", err);
+      }
+    };
+
     fetchLorries();
     fetchProducts();
+    fetchActiveLoadingTransactions();
   }, []);
 
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+
+    // If changing lorry_id, check if the lorry already has an active loading
+    if (name === "lorry_id" && value) {
+      if (loadedLorries[value]) {
+        setError(
+          `This lorry already has an active loading (ID: ${loadedLorries[value].loading_id}). It must be unloaded before creating a new loading.`
+        );
+        // You can optionally reset the lorry_id selection
+        setFormData({ ...formData, [name]: "" });
+        return;
+      } else {
+        // Clear any previous error if the lorry is valid
+        setError(null);
+      }
+    }
+
     setFormData({ ...formData, [name]: value });
   };
 
@@ -238,6 +309,14 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
       return;
     }
 
+    // Double-check if the lorry already has an active loading
+    if (loadedLorries[formData.lorry_id]) {
+      setError(
+        `This lorry already has an active loading. It must be unloaded before creating a new loading.`
+      );
+      return;
+    }
+
     // Check for any validation errors in loading items
     const itemWithError = loadingItems.find((item) => item.validationError);
     if (itemWithError) {
@@ -348,11 +427,19 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
               required
             >
               <option value="">Select Lorry</option>
-              {lorries.map((lorry) => (
-                <option key={lorry.lorry_id} value={lorry.lorry_id}>
-                  {lorry.lorry_number} - {lorry.driver_name}
-                </option>
-              ))}
+              {lorries.map((lorry) => {
+                const isLoaded = loadedLorries[lorry.lorry_id];
+                return (
+                  <option
+                    key={lorry.lorry_id}
+                    value={lorry.lorry_id}
+                    disabled={isLoaded}
+                  >
+                    {lorry.lorry_number} - {lorry.driver_name}
+                    {isLoaded ? " (Already Loaded)" : ""}
+                  </option>
+                );
+              })}
             </select>
           </div>
 

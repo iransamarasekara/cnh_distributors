@@ -118,14 +118,20 @@ exports.createLoadingTransaction = async (req, res) => {
           transaction: dbTransaction,
         });
 
+        const product = await db.Product.findOne({
+          where: { product_id: detail.product_id },
+        });
+
         if (!stockInventory) {
           throw new Error(
             `No inventory found for product ID: ${detail.product_id}`
           );
         }
 
+        console.log("Product Get: ", product);
+
         // Get bottles per case
-        const bottlesPerCase = stockInventory.bottles_per_case || 12; // Default or get from product
+        const bottlesPerCase = product.bottles_per_case; // Default or get from product
 
         // Initialize adjusted quantities with requested quantities
         let adjustedCasesLoaded = detail.cases_loaded;
@@ -275,8 +281,12 @@ exports.updateLoadingTransaction = async (req, res) => {
           transaction: dbTransaction,
         });
 
+        const product = await db.Product.findOne({
+          where: { product_id: detail.product_id },
+        });
+
         if (inventory) {
-          const bottlesPerCase = inventory.bottles_per_case || 12;
+          const bottlesPerCase = product.bottles_per_case;
           const newCasesQty = inventory.cases_qty + detail.cases_loaded;
           const newBottlesQty = inventory.bottles_qty + detail.bottles_loaded;
           const newTotalBottles = newCasesQty * bottlesPerCase + newBottlesQty;
@@ -427,7 +437,12 @@ exports.getRecentLoadingTransactions = async (req, res) => {
             {
               model: db.Product,
               as: "product",
-              attributes: ["product_id", "product_name", "bottles_per_case"],
+              attributes: [
+                "product_id",
+                "product_name",
+                "bottles_per_case",
+                "size",
+              ],
             },
           ],
         },
