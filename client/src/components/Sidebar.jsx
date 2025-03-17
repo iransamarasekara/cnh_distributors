@@ -1,5 +1,5 @@
 import React from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Squares2X2Icon,
   CubeIcon,
@@ -12,6 +12,7 @@ import {
 
 const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const menuItems = [
     {
@@ -48,12 +49,16 @@ const Sidebar = () => {
       label: "Help",
       url: "/help",
     },
-    {
-      icon: <ArrowRightOnRectangleIcon className="w-5 h-5" />,
-      label: "Logout",
-      url: "/logout",
-    },
   ];
+
+  const handleLogout = () => {
+    // Remove token from localStorage
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    
+    // Redirect to login page
+    navigate("/login");
+  };
 
   return (
     <div className="bg-white w-52 flex flex-col shadow">
@@ -118,6 +123,17 @@ const Sidebar = () => {
               </a>
             </li>
           ))}
+          <li>
+            <button
+              onClick={handleLogout}
+              className="flex items-center px-4 py-3 hover:bg-gray-100 w-full text-left"
+            >
+              <span className="mr-3">
+                <ArrowRightOnRectangleIcon className="w-5 h-5" />
+              </span>
+              <span>Logout</span>
+            </button>
+          </li>
         </ul>
       </div>
     </div>

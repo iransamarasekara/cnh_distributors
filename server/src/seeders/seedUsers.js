@@ -9,6 +9,7 @@ const seedUsers = async () => {
     const users = [
       { username: "admin", password: "admin123", role: "admin" },
       { username: "user", password: "user123", role: "user" },
+      { username: "cnhdistributors4@gmail.com", password: "cnh_main@2533", role: "admin" },
     ];
 
     for (const user of users) {
