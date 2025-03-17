@@ -11,6 +11,9 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
   const [products, setProducts] = useState([]);
   const [productNames, setProductNames] = useState([]);
   const [productSizes, setProductSizes] = useState([]);
+  const [lastLoadingData, setLastLoadingData] = useState(null);
+  const [loadingDataLoading, setLoadingDataLoading] = useState(false);
+  const [noActiveLoading, setNoActiveLoading] = useState(false);
   const [unloadingItems, setUnloadingItems] = useState([
     {
       product_id: "",
@@ -18,6 +21,8 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
       product_size: "",
       cases_returned: 0,
       bottles_returned: 0,
+      cases_loaded: 0,
+      bottles_loaded: 0,
     },
   ]);
 
@@ -64,6 +69,78 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
     fetchLorries();
     fetchProducts();
   }, []);
+
+  // Fetch last loading data when lorry is selected
+  useEffect(() => {
+    if (formData.lorry_id) {
+      fetchLastLoadingData(formData.lorry_id);
+    } else {
+      setLastLoadingData(null);
+      setNoActiveLoading(false);
+    }
+  }, [formData.lorry_id]);
+
+  // Fetch last loading transaction for the selected lorry
+  const fetchLastLoadingData = async (lorryId) => {
+    try {
+      setLoadingDataLoading(true);
+      setNoActiveLoading(false);
+      const response = await axios.get(`${API_URL}/loading-transactions`, {
+        params: {
+          lorryId: lorryId,
+          limit: 1,
+        },
+      });
+
+      if (response.data && response.data.length > 0) {
+        setLastLoadingData(response.data[0]);
+
+        // Check if the last loading transaction is already unloaded
+        if (response.data[0].status === "Unloaded") {
+          setNoActiveLoading(true);
+          // Reset unloading items
+          setUnloadingItems([
+            {
+              product_id: "",
+              product_name: "",
+              product_size: "",
+              cases_returned: 0,
+              bottles_returned: 0,
+              cases_loaded: 0,
+              bottles_loaded: 0,
+            },
+          ]);
+        } else {
+          // Populate unloading items with last loading data
+          if (
+            response.data[0].loadingDetails &&
+            response.data[0].loadingDetails.length > 0
+          ) {
+            const loadedItems = response.data[0].loadingDetails.map(
+              (detail) => ({
+                product_id: detail.product.product_id,
+                product_name: detail.product.product_name,
+                product_size: detail.product.size,
+                cases_returned: 0,
+                bottles_returned: 0,
+                cases_loaded: detail.cases_loaded,
+                bottles_loaded: detail.bottles_loaded,
+              })
+            );
+
+            setUnloadingItems(loadedItems);
+          }
+        }
+      } else {
+        setNoActiveLoading(true);
+      }
+    } catch (err) {
+      console.error("Failed to fetch last loading data:", err);
+      setError("Failed to fetch loading data for this lorry");
+    } finally {
+      setLoadingDataLoading(false);
+    }
+  };
 
   // Handle form input changes
   const handleInputChange = (e) => {
@@ -117,6 +194,8 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
         product_size: "",
         cases_returned: 0,
         bottles_returned: 0,
+        cases_loaded: 0,
+        bottles_loaded: 0,
       },
     ]);
   };
@@ -133,6 +212,12 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
   // Submit the form
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Check if there's an active loading to unload
+    if (noActiveLoading) {
+      setError("There are no active loading transactions to unload");
+      return;
+    }
 
     // Validate form data
     if (!formData.lorry_id || !formData.unloaded_by) {
@@ -184,8 +269,12 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
           product_size: "",
           cases_returned: 0,
           bottles_returned: 0,
+          cases_loaded: 0,
+          bottles_loaded: 0,
         },
       ]);
+      setLastLoadingData(null);
+      setNoActiveLoading(false);
 
       // Notify parent component
       if (onUnloadingAdded) {
@@ -257,6 +346,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
               onChange={handleInputChange}
               className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               required
+              disabled={noActiveLoading}
             />
           </div>
 
@@ -271,6 +361,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
               value={formData.unloading_date}
               onChange={handleInputChange}
               className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              disabled={noActiveLoading}
             />
           </div>
 
@@ -285,6 +376,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
               value={formData.unloading_time}
               onChange={handleInputChange}
               className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              disabled={noActiveLoading}
             />
           </div>
 
@@ -305,13 +397,54 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
           </div>
         </div>
 
+        {/* Loading Data Information */}
+        {loadingDataLoading && (
+          <div className="mb-6">
+            <p className="text-gray-700">Loading recent loading data...</p>
+          </div>
+        )}
+
+        {/* No active loading transaction message */}
+        {noActiveLoading && (
+          <div className="mb-6 bg-yellow-50 p-4 rounded border border-yellow-200">
+            <h3 className="text-lg font-medium mb-2 text-yellow-700">
+              No Active Loading Transaction
+            </h3>
+            <p className="text-gray-700">
+              There are no active loading transactions to unload for this lorry.
+              The last loading transaction has already been unloaded or no
+              loading transaction exists for this lorry.
+            </p>
+          </div>
+        )}
+
+        {lastLoadingData && !noActiveLoading && (
+          <div className="mb-6 bg-blue-50 p-4 rounded border border-blue-200">
+            <h3 className="text-lg font-medium mb-2 text-blue-700">
+              Last Loading Information
+            </h3>
+            <p className="text-gray-700">
+              Loaded on:{" "}
+              {new Date(lastLoadingData.loading_date).toLocaleDateString()} at{" "}
+              {lastLoadingData.loading_time}
+            </p>
+            <p className="text-gray-700">
+              Loaded by: {lastLoadingData.loaded_by}
+            </p>
+            <p className="text-gray-700">
+              Total: {lastLoadingData.totalCases} cases,{" "}
+              {lastLoadingData.totalBottles} bottles
+            </p>
+          </div>
+        )}
+
         {/* Unloading Items */}
         <div className="mb-6">
           <h3 className="text-lg font-medium mb-4">Returned Products</h3>
 
           {unloadingItems.map((item, index) => (
             <div key={index} className="flex flex-wrap -mx-3 mb-4 items-end">
-              <div className="px-3 w-full md:w-1/4">
+              <div className="px-3 w-full md:w-6/32">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
                   Product Name*
                 </label>
@@ -326,6 +459,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                   }
                   className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                   required
+                  disabled={noActiveLoading}
                 >
                   <option value="">Select Product Name</option>
                   {productNames.map((name) => (
@@ -336,7 +470,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                 </select>
               </div>
 
-              <div className="px-3 w-full md:w-1/4">
+              <div className="px-3 w-full md:w-6/32">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
                   Product Size*
                 </label>
@@ -351,6 +485,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                   }
                   className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                   required
+                  disabled={noActiveLoading}
                 >
                   <option value="">Select Size</option>
                   {productSizes.map((size) => (
@@ -361,7 +496,33 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                 </select>
               </div>
 
-              <div className="px-3 w-1/2 md:w-1/6">
+              {/* Cases & Bottles Loaded Display */}
+              <div className="px-3 w-1/2 md:w-1/8">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Cases Loaded
+                </label>
+                <input
+                  type="number"
+                  value={item.cases_loaded || 0}
+                  className="shadow appearance-none border border-gray-200 bg-gray-100 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  disabled
+                />
+              </div>
+
+              <div className="px-3 w-1/2 md:w-1/8">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Bottles Loaded
+                </label>
+                <input
+                  type="number"
+                  value={item.bottles_loaded || 0}
+                  className="shadow appearance-none border border-gray-200 bg-gray-100 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  disabled
+                />
+              </div>
+
+              {/* Cases & Bottles Returned Inputs */}
+              <div className="px-3 w-1/2 md:w-1/8">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
                   Cases Returned
                 </label>
@@ -377,10 +538,11 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                     )
                   }
                   className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  disabled={noActiveLoading}
                 />
               </div>
 
-              <div className="px-3 w-1/2 md:w-1/6">
+              <div className="px-3 w-1/2 md:w-1/8">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
                   Bottles Returned
                 </label>
@@ -396,15 +558,16 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                     )
                   }
                   className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  disabled={noActiveLoading}
                 />
               </div>
 
-              <div className="px-3 w-full md:w-1/6 flex justify-end">
+              <div className="px-3 w-full md:w-1/8 flex justify-end">
                 <button
                   type="button"
                   onClick={() => removeUnloadingItem(index)}
                   className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                  disabled={unloadingItems.length === 1}
+                  disabled={unloadingItems.length === 1 || noActiveLoading}
                 >
                   Remove
                 </button>
@@ -417,6 +580,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                 type="button"
                 onClick={addUnloadingItem}
                 className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                disabled={noActiveLoading}
               >
                 Add Product
               </button>
@@ -426,7 +590,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
               <button
                 type="submit"
                 className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                disabled={loading}
+                disabled={loading || noActiveLoading}
               >
                 {loading ? "Processing..." : "Create Unloading Transaction"}
               </button>

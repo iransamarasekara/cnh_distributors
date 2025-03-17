@@ -209,7 +209,7 @@ exports.updateStockQuantity = async (req, res) => {
 
       // Assuming you have a way to calculate bottles per case and value per bottle
       // You might want to fetch this from Products table or pass it in the request
-      const bottlesPerCase = stockInventory.bottles_per_case || 12; // Default value if not available
+      const bottlesPerCase = stockInventory.bottles_per_case; // Default value if not available
       const valuePerBottle =
         stockInventory.value_per_bottle ||
         stockInventory.total_value / stockInventory.total_bottles;
