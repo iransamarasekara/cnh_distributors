@@ -72,7 +72,10 @@ const Sidebar = () => {
       <nav className="flex-1">
         <ul>
           {menuItems.map((item, index) => {
-            const isActive = location.pathname === item.url;
+            let isActive = location.pathname === item.url;
+            if (location.pathname === "/dashboard") {
+              isActive = item.url === "/";
+            }
 
             return (
               <li key={index}>
