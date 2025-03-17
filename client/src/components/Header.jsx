@@ -67,8 +67,14 @@ const Header = () => {
   ];
 
   return (
-    <header className="bg-white shadow-sm py-5 px-4">
+    <header className="bg-white py-[10px] px-4 shadow-sm">
       <div className="flex items-center justify-between">
+        <div className="">
+          <div className="flex items-center">
+            <span className="text-2xl font-bold text-blue-400">C&H</span>
+          </div>
+          <div className="text-blue-400 font-semibold">DISTRIBUTORS</div>
+        </div>
         <div className="relative flex-1 max-w-sm mx-auto">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg
