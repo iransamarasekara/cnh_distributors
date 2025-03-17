@@ -286,7 +286,7 @@ exports.updateLoadingTransaction = async (req, res) => {
         });
 
         if (inventory) {
-          const bottlesPerCase = product.bottles_per_case || 12;
+          const bottlesPerCase = product.bottles_per_case;
           const newCasesQty = inventory.cases_qty + detail.cases_loaded;
           const newBottlesQty = inventory.bottles_qty + detail.bottles_loaded;
           const newTotalBottles = newCasesQty * bottlesPerCase + newBottlesQty;

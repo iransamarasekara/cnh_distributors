@@ -87,11 +87,11 @@ exports.createUnloadingTransaction = async (req, res) => {
             throw new Error(`Product with ID ${detail.product_id} not found`);
           }
 
-          const bottlesPerCase = product.bottles_per_case || 12;
+          const bottlesPerCase = product.bottles_per_case;
           const totalBottles =
             detail.cases_returned * bottlesPerCase + detail.bottles_returned;
           // Calculate appropriate value based on product pricing
-          const valuePerBottle = product.unit_price || 0;
+          const valuePerBottle = product.unit_price;
 
           // Create new inventory record
           await StockInventory.create(
@@ -107,7 +107,7 @@ exports.createUnloadingTransaction = async (req, res) => {
           );
         } else {
           // Calculate new inventory quantities
-          const bottlesPerCase = product.bottles_per_case || 12; // Default or get from product
+          const bottlesPerCase = product.bottles_per_case; // Default or get from product
           const newCasesQty = stockInventory.cases_qty + detail.cases_returned;
           const newBottlesQty =
             stockInventory.bottles_qty + detail.bottles_returned;
@@ -116,13 +116,7 @@ exports.createUnloadingTransaction = async (req, res) => {
           const newTotalBottles = newCasesQty * bottlesPerCase + newBottlesQty;
 
           // Calculate value per bottle (if total_bottles is 0, use a fallback)
-          const valuePerBottle =
-            stockInventory.total_bottles > 0
-              ? stockInventory.total_value / stockInventory.total_bottles
-              : await getProductValuePerBottle(
-                  detail.product_id,
-                  dbTransaction
-                );
+          const valuePerBottle = product.unit_price;
 
           const newTotalValue = newTotalBottles * valuePerBottle;
 
@@ -140,21 +134,21 @@ exports.createUnloadingTransaction = async (req, res) => {
         }
 
         // Create the unloading detail record
-        const bottlesPerCase = 12; // Default, should be fetched from product
+        const bottlesPerCase = product.bottles_per_case;
         const totalBottlesReturned =
           detail.cases_returned * bottlesPerCase + detail.bottles_returned;
 
         // Get value per bottle (from inventory or product)
-        let valuePerBottle = 0;
-        if (stockInventory && stockInventory.total_bottles > 0) {
-          valuePerBottle =
-            stockInventory.total_value / stockInventory.total_bottles;
-        } else {
-          valuePerBottle = await getProductValuePerBottle(
-            detail.product_id,
-            dbTransaction
-          );
-        }
+        let valuePerBottle = product.unit_price;
+        // if (stockInventory && stockInventory.total_bottles > 0) {
+        //   valuePerBottle =
+        //     stockInventory.total_value / stockInventory.total_bottles;
+        // } else {
+        //   valuePerBottle = await getProductValuePerBottle(
+        //     detail.product_id,
+        //     dbTransaction
+        //   );
+        // }
 
         // Record the transaction regardless of whether it's a new or existing inventory
         await InventoryTransaction.create(
@@ -292,20 +286,42 @@ async function createDailySalesFromUnloading(
 
     console.log(`Total loading details collected: ${allLoadingDetails.length}`);
 
-    // Get product information for pricing and calculations
-    const productIds = Array.from(
-      new Set([
-        ...allLoadingDetails.map((detail) => detail.product_id),
-        ...currentUnloadingTransaction.unloadingDetails.map(
-          (detail) => detail.product_id
-        ),
-      ])
+    // Find ALL unloading transactions for this lorry on this date
+    const allUnloadingTransactions = await db.UnloadingTransaction.findAll({
+      where: {
+        lorry_id: lorryId,
+        unloading_date: unloadingDate,
+      },
+      include: [
+        {
+          model: db.UnloadingDetail,
+          as: "unloadingDetails",
+        },
+      ],
+      transaction,
+    });
+
+    console.log(
+      `Found ${allUnloadingTransactions.length} unloading transactions`
     );
 
-    console.log("Product IDs found:", productIds);
+    // Get product information for pricing and calculations
+    const productIds = new Set();
+
+    // Add product IDs from all loading details
+    allLoadingDetails.forEach((detail) => productIds.add(detail.product_id));
+
+    // Add product IDs from all unloading transactions
+    allUnloadingTransactions.forEach((unloadingTx) => {
+      unloadingTx.unloadingDetails.forEach((detail) =>
+        productIds.add(detail.product_id)
+      );
+    });
+
+    console.log("Product IDs found:", Array.from(productIds));
 
     const products = await db.Product.findAll({
-      where: { product_id: productIds },
+      where: { product_id: Array.from(productIds) },
       transaction,
     });
 
@@ -333,7 +349,7 @@ async function createDailySalesFromUnloading(
       productLoads[productId].bottles_loaded += loadDetail.bottles_loaded || 0;
 
       const product = productMap[productId];
-      const bottlesPerCase = product ? product.bottles_per_case || 12 : 12;
+      const bottlesPerCase = product ? product.bottles_per_case : 0;
 
       productLoads[productId].total_bottles_loaded =
         productLoads[productId].cases_loaded * bottlesPerCase +
@@ -346,16 +362,52 @@ async function createDailySalesFromUnloading(
       );
     }
 
-    // Process the current unloading transaction details
-    const unloadingDetails = currentUnloadingTransaction.unloadingDetails;
-    console.log(`Processing ${unloadingDetails.length} unloading details`);
+    // Create a map to accumulate returned quantities by product for this day
+    const productReturns = {};
+
+    // Sum up all returned quantities from all unloading transactions
+    for (const unloadingTx of allUnloadingTransactions) {
+      for (const unloadDetail of unloadingTx.unloadingDetails) {
+        const productId = unloadDetail.product_id;
+        const product = productMap[productId];
+
+        if (!product) {
+          console.log(`No product found for product_id ${productId}`);
+          continue;
+        }
+
+        if (!productReturns[productId]) {
+          productReturns[productId] = {
+            cases_returned: 0,
+            bottles_returned: 0,
+            total_bottles_returned: 0,
+          };
+        }
+
+        productReturns[productId].cases_returned +=
+          unloadDetail.cases_returned || 0;
+        productReturns[productId].bottles_returned +=
+          unloadDetail.bottles_returned || 0;
+
+        const bottlesPerCase = product.bottles_per_case;
+
+        productReturns[productId].total_bottles_returned =
+          productReturns[productId].cases_returned * bottlesPerCase +
+          productReturns[productId].bottles_returned;
+
+        console.log(
+          `Accumulated returns for product ${productId}: ${productReturns[productId].cases_returned} cases, ` +
+            `${productReturns[productId].bottles_returned} bottles, ` +
+            `${productReturns[productId].total_bottles_returned} total bottles`
+        );
+      }
+    }
 
     // Create a sales record for each product
     const salesItems = [];
 
-    // Process each product that was returned in this unloading transaction
-    for (const unloadDetail of unloadingDetails) {
-      const productId = unloadDetail.product_id;
+    // Process each product that was loaded
+    for (const productId in productLoads) {
       const product = productMap[productId];
 
       if (!product) {
@@ -363,26 +415,20 @@ async function createDailySalesFromUnloading(
         continue;
       }
 
-      // Get the loaded quantities for this product (or default to 0 if not loaded)
-      const loadData = productLoads[productId] || {
-        cases_loaded: 0,
-        bottles_loaded: 0,
-        total_bottles_loaded: 0,
+      const loadData = productLoads[productId];
+      const returnData = productReturns[productId] || {
+        cases_returned: 0,
+        bottles_returned: 0,
+        total_bottles_returned: 0,
       };
 
-      const bottlesPerCase = product.bottles_per_case || 12;
-
-      // Calculate total bottles returned in this unloading transaction
-      const totalBottlesReturned =
-        unloadDetail.cases_returned * bottlesPerCase +
-        unloadDetail.bottles_returned;
-
       // Calculate units sold (bottles loaded - bottles returned)
-      const unitsSold = loadData.total_bottles_loaded - totalBottlesReturned;
+      const unitsSold =
+        loadData.total_bottles_loaded - returnData.total_bottles_returned;
 
       console.log(
         `Product ${productId}: Loaded ${loadData.total_bottles_loaded}, ` +
-          `Returned ${totalBottlesReturned}, Sold ${unitsSold}`
+          `Returned ${returnData.total_bottles_returned}, Sold ${unitsSold}`
       );
 
       if (unitsSold <= 0) {
@@ -411,44 +457,6 @@ async function createDailySalesFromUnloading(
       });
     }
 
-    // Handle products that were loaded but not returned at all
-    for (const productId in productLoads) {
-      // Skip if this product was already processed (was in the unloading details)
-      if (unloadingDetails.some((detail) => detail.product_id == productId)) {
-        continue;
-      }
-
-      const product = productMap[productId];
-      if (!product) {
-        console.log(`No product found for product_id ${productId}`);
-        continue;
-      }
-
-      // Assume all loaded bottles were sold since none were returned
-      const unitsSold = productLoads[productId].total_bottles_loaded;
-
-      if (unitsSold <= 0) {
-        continue;
-      }
-
-      // Calculate sales income and profit
-      const salesIncome = unitsSold * (product.selling_price || 0);
-      const costOfGoods = unitsSold * (product.unit_price || 0);
-      const grossProfit = salesIncome - costOfGoods;
-
-      console.log(
-        `Product ${productId} (not returned): Loaded ${unitsSold}, ` +
-          `Sales Income ${salesIncome}, Gross Profit ${grossProfit}`
-      );
-
-      salesItems.push({
-        product_id: parseInt(productId),
-        units_sold: unitsSold,
-        sales_income: salesIncome,
-        gross_profit: grossProfit,
-      });
-    }
-
     console.log(`Sales items to be created: ${salesItems.length}`);
 
     if (salesItems.length === 0) {
@@ -457,15 +465,13 @@ async function createDailySalesFromUnloading(
     }
 
     // Check if a daily sales record already exists for this lorry and date
-    const existingDailySales = await db.DailySales.findOne({
+    let existingDailySales = await db.DailySales.findOne({
       where: {
         sales_date: unloadingDate,
         lorry_id: lorryId,
       },
       transaction,
     });
-
-    let dailySales;
 
     // Calculate totals
     const totalUnitsSold = salesItems.reduce(
@@ -481,7 +487,14 @@ async function createDailySalesFromUnloading(
       0
     );
 
+    // Create or replace the daily sales record
     if (existingDailySales) {
+      // Delete old sales details
+      await db.DailySalesDetails.destroy({
+        where: { sales_id: existingDailySales.sales_id },
+        transaction,
+      });
+
       // Update the existing daily sales record
       await existingDailySales.update(
         {
@@ -492,17 +505,10 @@ async function createDailySalesFromUnloading(
         { transaction }
       );
 
-      // Delete old sales details
-      await db.DailySalesDetails.destroy({
-        where: { sales_id: existingDailySales.sales_id },
-        transaction,
-      });
-
-      dailySales = existingDailySales;
       console.log("Updated existing daily sales record");
     } else {
       // Create a new daily sales record
-      dailySales = await db.DailySales.create(
+      existingDailySales = await db.DailySales.create(
         {
           sales_date: unloadingDate,
           lorry_id: lorryId,
@@ -519,7 +525,7 @@ async function createDailySalesFromUnloading(
     for (const item of salesItems) {
       await db.DailySalesDetails.create(
         {
-          sales_id: dailySales.sales_id,
+          sales_id: existingDailySales.sales_id,
           product_id: item.product_id,
           units_sold: item.units_sold,
           sales_income: item.sales_income,
@@ -530,7 +536,7 @@ async function createDailySalesFromUnloading(
     }
 
     console.log("Daily sales record created/updated successfully");
-    return dailySales;
+    return existingDailySales;
   } catch (error) {
     console.error("Error creating daily sales from unloading:", error);
     throw error;
@@ -596,7 +602,7 @@ exports.updateUnloadingTransaction = async (req, res) => {
         });
 
         if (inventory) {
-          const bottlesPerCase = product.bottles_per_case || 12;
+          const bottlesPerCase = product.bottles_per_case;
           const newCasesQty = inventory.cases_qty - detail.cases_returned;
           const newBottlesQty = inventory.bottles_qty - detail.bottles_returned;
 
@@ -610,13 +616,7 @@ exports.updateUnloadingTransaction = async (req, res) => {
           const newTotalBottles = newCasesQty * bottlesPerCase + newBottlesQty;
 
           // Calculate value per bottle
-          const valuePerBottle =
-            inventory.total_bottles > 0
-              ? inventory.total_value / inventory.total_bottles
-              : await getProductValuePerBottle(
-                  detail.product_id,
-                  dbTransaction
-                );
+          const valuePerBottle = product.unit_price;
 
           const newTotalValue = newTotalBottles * valuePerBottle;
 
