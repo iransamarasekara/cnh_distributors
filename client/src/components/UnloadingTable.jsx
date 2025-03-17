@@ -237,23 +237,26 @@ const UnloadingTable = ({ selectedLorry, dateRange }) => {
               <table className="min-w-full bg-white">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="py-2 px-4 border-b text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Product ID
                     </th>
-                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="py-2 px-4 border-b text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Size
                     </th>
-                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="py-2 px-4 border-b text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Cases Unloaded
                     </th>
-                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="py-2 px-4 border-b text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Bottles Unloaded
                     </th>
-                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="py-2 px-4 border-b text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total Bottles
                     </th>
-                    <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Value
+                    <th className="py-2 px-4 border-b text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Inventory Value
+                    </th>
+                    <th className="py-2 px-4 border-b text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Sales Value
                     </th>
                   </tr>
                 </thead>
@@ -263,27 +266,39 @@ const UnloadingTable = ({ selectedLorry, dateRange }) => {
                       key={detail.unloading_detail_id}
                       className="hover:bg-gray-50"
                     >
-                      <td className="py-2 px-4 text-sm text-gray-900">
+                      <td className="py-2 px-4 text-sm text-gray-900 whitespace-nowrap">
                         {detail.product
                           ? detail.product.product_name
                           : `Product #${detail.product_id}`}
                       </td>
-                      <td className="py-2 px-4 text-sm text-gray-900">
+                      <td className="py-2 px-4 text-sm text-gray-900 whitespace-nowrap">
                         {detail.product
                           ? detail.product.size
                           : `Missing product (ID: ${detail.product_id})`}
                       </td>
-                      <td className="py-2 px-4 text-sm text-gray-900">
+                      <td className="py-2 px-4 text-sm text-gray-900 text-center">
                         {detail.cases_returned}
                       </td>
-                      <td className="py-2 px-4 text-sm text-gray-900">
+                      <td className="py-2 px-4 text-sm text-gray-900 text-center">
                         {detail.bottles_returned}
                       </td>
-                      <td className="py-2 px-4 text-sm text-gray-900">
+                      <td className="py-2 px-4 text-sm text-gray-900 text-center">
                         {detail.total_bottles_returned}
                       </td>
-                      <td className="py-2 px-4 text-sm text-gray-900">
-                        Rs {detail.value.toFixed(2)}
+                      <td className="py-2 px-4 text-sm text-gray-900 text-right">
+                        {detail.value.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </td>
+                      <td className="py-2 px-4 text-sm text-gray-900 text-right">
+                        {(
+                          detail.total_bottles_returned *
+                          detail.product.selling_price
+                        ).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </td>
                     </tr>
                   ))}
@@ -297,29 +312,50 @@ const UnloadingTable = ({ selectedLorry, dateRange }) => {
                     >
                       Totals:
                     </td>
-                    <td className="py-2 px-4 text-sm font-semibold text-gray-900">
-                      {unloadingDetails.reduce(
-                        (sum, detail) => sum + detail.cases_returned,
-                        0
-                      )}
+                    <td className="py-2 px-4 text-sm font-semibold text-gray-900 text-center">
+                      {unloadingDetails
+                        .reduce((sum, detail) => sum + detail.cases_returned, 0)
+                        .toLocaleString()}
                     </td>
-                    <td className="py-2 px-4 text-sm font-semibold text-gray-900">
-                      {unloadingDetails.reduce(
-                        (sum, detail) => sum + detail.bottles_returned,
-                        0
-                      )}
+                    <td className="py-2 px-4 text-sm font-semibold text-gray-900 text-center">
+                      {unloadingDetails
+                        .reduce(
+                          (sum, detail) => sum + detail.bottles_returned,
+                          0
+                        )
+                        .toLocaleString()}
                     </td>
-                    <td className="py-2 px-4 text-sm font-semibold text-gray-900">
-                      {unloadingDetails.reduce(
-                        (sum, detail) => sum + detail.total_bottles_returned,
-                        0
-                      )}
+                    <td className="py-2 px-4 text-sm font-semibold text-gray-900 text-center">
+                      {unloadingDetails
+                        .reduce(
+                          (sum, detail) => sum + detail.total_bottles_returned,
+                          0
+                        )
+                        .toLocaleString()}
                     </td>
-                    <td className="py-2 px-4 text-sm font-semibold text-gray-900">
-                      Rs{" "}
+                    <td className="py-2 px-4 text-sm font-semibold text-gray-900 text-right">
+                      LKR&nbsp;
                       {unloadingDetails
                         .reduce((sum, detail) => sum + detail.value, 0)
-                        .toFixed(2)}
+                        .toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                    </td>
+                    <td className="py-2 px-4 text-sm font-semibold text-gray-900 text-right">
+                      LKR&nbsp;
+                      {unloadingDetails
+                        .reduce(
+                          (sum, detail) =>
+                            sum +
+                            detail.total_bottles_returned *
+                              detail.product.selling_price,
+                          0
+                        )
+                        .toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                     </td>
                   </tr>
                 </tfoot>
