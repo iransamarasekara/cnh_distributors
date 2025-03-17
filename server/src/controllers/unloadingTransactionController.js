@@ -191,6 +191,18 @@ exports.createUnloadingTransaction = async (req, res) => {
       }
     }
 
+    // ADDED: Update all loading transactions for this lorry to "Unloaded" state
+    await db.LoadingTransaction.update(
+      { status: "Unloaded" },
+      {
+        where: {
+          lorry_id: lorry_id,
+          status: { [db.Sequelize.Op.ne]: "Unloaded" }, // Only update non-unloaded transactions
+        },
+        transaction: dbTransaction,
+      }
+    );
+
     // ADDED: Create daily sales by comparing loading and unloading transactions
     await createDailySalesFromUnloading(
       lorry_id,
