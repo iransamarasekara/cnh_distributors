@@ -70,6 +70,11 @@ exports.createUnloadingTransaction = async (req, res) => {
           transaction: dbTransaction,
         });
 
+        const product = await db.Product.findOne({
+          where: { product_id: detail.product_id },
+          transaction: dbTransaction,
+        });
+
         // If no inventory exists for this product, create a new one
         if (!stockInventory) {
           // Get product information to calculate values correctly
@@ -102,7 +107,7 @@ exports.createUnloadingTransaction = async (req, res) => {
           );
         } else {
           // Calculate new inventory quantities
-          const bottlesPerCase = stockInventory.bottles_per_case || 12; // Default or get from product
+          const bottlesPerCase = product.bottles_per_case || 12; // Default or get from product
           const newCasesQty = stockInventory.cases_qty + detail.cases_returned;
           const newBottlesQty =
             stockInventory.bottles_qty + detail.bottles_returned;
@@ -573,8 +578,13 @@ exports.updateUnloadingTransaction = async (req, res) => {
           transaction: dbTransaction,
         });
 
+        const product = await db.Product.findOne({
+          where: { product_id: detail.product_id },
+          transaction: dbTransaction,
+        });
+
         if (inventory) {
-          const bottlesPerCase = inventory.bottles_per_case || 12;
+          const bottlesPerCase = product.bottles_per_case || 12;
           const newCasesQty = inventory.cases_qty - detail.cases_returned;
           const newBottlesQty = inventory.bottles_qty - detail.bottles_returned;
 
