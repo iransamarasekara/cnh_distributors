@@ -424,7 +424,7 @@ const InventoryReportsPage = () => {
   }
 
   return (
-    <div className="container mx-auto">
+    <div className="mx-auto">
       <h2 className="text-xl font-bold mb-4">Consolidated Inventory Report</h2>
       <div className="relative">
         <label className="block text-sm font-medium text-gray-700 mb-1">

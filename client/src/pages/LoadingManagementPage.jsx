@@ -115,7 +115,7 @@ const LoadingManagementPage = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="mx-auto p-4">
       <div className="border-b-2 border-gray-200">
         <nav className="flex">
           {tabs.map((tab) => (
