@@ -12,6 +12,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
   const [productEntries, setProductEntries] = useState([]);
   const [loadedLorries, setLoadedLorries] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -93,7 +94,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
             product_id: product.product_id,
             product_name: product.product_name,
             product_size: product.size,
-            bottles_per_case: product.bottles_per_case || 12,
+            bottles_per_case: product.bottles_per_case,
             cases_loaded: 0,
             bottles_loaded: 0,
             cases_available: inventory.cases_qty || 0,
@@ -198,7 +199,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
       };
     }
 
-    const bottlesPerCase = product.bottles_per_case || 12;
+    const bottlesPerCase = product.bottles_per_case;
 
     let finalCases = parseInt(casesLoaded) || 0;
     let finalBottles = parseInt(bottlesLoaded) || 0;
@@ -253,14 +254,12 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
     );
   };
 
-  // Submit the form
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
+  // Validate form before showing confirmation
+  const validateForm = () => {
     // Validate form data
     if (!formData.lorry_id || !formData.loaded_by) {
       setError("Please fill in all required fields");
-      return;
+      return false;
     }
 
     // Double-check if the lorry already has an active loading
@@ -268,7 +267,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
       setError(
         `This lorry already has an active loading. It must be unloaded before creating a new loading.`
       );
-      return;
+      return false;
     }
 
     // Filter out products with no quantities
@@ -278,7 +277,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
     
     if (productsToLoad.length === 0) {
       setError("Please enter quantities for at least one product");
-      return;
+      return false;
     }
     
     // Check for validation errors
@@ -287,12 +286,32 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
       setError(
         `Please fix validation error for ${itemWithError.product_name} ${itemWithError.product_size}: ${itemWithError.validationError}`
       );
-      return;
+      return false;
     }
 
+    return true;
+  };
+
+  // Show confirmation dialog
+  const handleShowConfirmation = (e) => {
+    e.preventDefault();
+    
+    if (validateForm()) {
+      setError(null);
+      setShowConfirmation(true);
+    }
+  };
+
+  // Submit the form after confirmation
+  const handleSubmit = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Filter out products with no quantities
+      const productsToLoad = productEntries.filter(
+        entry => (parseInt(entry.cases_loaded) > 0 || parseInt(entry.bottles_loaded) > 0)
+      );
 
       // Prepare the request payload
       const loadingData = {
@@ -308,6 +327,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
       await axios.post(`${API_URL}/loading-transactions`, loadingData);
 
       setSuccess(true);
+      setShowConfirmation(false);
       
       // Reset form
       setFormData({
@@ -342,9 +362,15 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
       setError(
         err.response?.data?.message || "Failed to create loading transaction"
       );
+      setShowConfirmation(false);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Cancel confirmation
+  const handleCancelConfirmation = () => {
+    setShowConfirmation(false);
   };
 
   // Get unique product sizes for color coding
@@ -353,15 +379,15 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
   // Modern gradient colors for each unique size
   const sizeColors = {};
   const gradients = [
-    'bg-gradient-to-r from-blue-50-blue-100',
-    'bg-gradient-to-r from-purple-50 to-purple-100',
-    'bg-gradient-to-r from-green-50 to-green-100',
-    'bg-gradient-to-r from-yellow-50 to-yellow-100',
-    'bg-gradient-to-r from-indigo-50 to-indigo-100',
-    'bg-gradient-to-r from-pink-50 to-pink-100',
-    'bg-gradient-to-r from-red-50 to-red-100',
-    'bg-gradient-to-r from-teal-50 to-teal-100',
-    'bg-gradient-to-r from-orange-50 to-orange-100'
+   'bg-gradient-to-r from-sky-50 to-sky-100',       // Soft Sky Blue
+  'bg-gradient-to-r from-rose-50 to-rose-100',     // Soft Rose Pink
+  'bg-gradient-to-r from-emerald-50 to-emerald-100', // Fresh Emerald Green
+  'bg-gradient-to-r from-amber-50 to-amber-100',   // Warm Amber
+  'bg-gradient-to-r from-violet-50 to-violet-100', // Modern Soft Violet
+  'bg-gradient-to-r from-fuchsia-50 to-fuchsia-100', // Trendy Fuchsia
+  'bg-gradient-to-r from-lime-50 to-lime-100',     // Refreshing Lime
+  'bg-gradient-to-r from-cyan-50 to-cyan-100',     // Light Cyan Blue
+  'bg-gradient-to-r from-indigo-50 to-indigo-100'  // Stylish Indigo
   ];
   
   // Ordered sizes based on our custom mapping
@@ -391,6 +417,14 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
     return getSizeOrderValue(a) - getSizeOrderValue(b);
   });
 
+  // Get products to load for confirmation dialog
+  const productsToLoad = productEntries.filter(
+    entry => (parseInt(entry.cases_loaded) > 0 || parseInt(entry.bottles_loaded) > 0)
+  );
+
+  // Get selected lorry details
+  const selectedLorry = lorries.find(lorry => lorry.lorry_id === formData.lorry_id);
+
   return (
     <div className="p-6">
       <h2 className="text-xl font-semibold mb-6">Add New Loading</h2>
@@ -407,7 +441,66 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
+      {/* Confirmation Modal */}
+      {showConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold mb-4">Confirm Loading Transaction</h3>
+            
+            <div className="mb-4">
+              <p className="font-semibold">Lorry Details:</p>
+              <p>Lorry: {selectedLorry ? `${selectedLorry.lorry_number} - ${selectedLorry.driver_name}` : ''}</p>
+              <p>Loaded By: {formData.loaded_by}</p>
+              <p>Date: {formData.loading_date}</p>
+              <p>Time: {formData.loading_time}</p>
+            </div>
+            
+            <div className="mb-4">
+              <p className="font-semibold mb-2">Products to Load:</p>
+              <div className="overflow-x-auto">
+                <table className="min-w-full border border-gray-200">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="py-2 px-4 border text-left">Product</th>
+                      <th className="py-2 px-4 border text-left">Size</th>
+                      <th className="py-2 px-4 border text-center">Cases</th>
+                      <th className="py-2 px-4 border text-center">Bottles</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {productsToLoad.map((product) => (
+                      <tr key={product.product_id}>
+                        <td className="py-1 px-4 border">{product.product_name}</td>
+                        <td className="py-1 px-4 border">{product.product_size}</td>
+                        <td className="py-1 px-4 border text-center">{product.cases_loaded}</td>
+                        <td className="py-1 px-4 border text-center">{product.bottles_loaded}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={handleCancelConfirmation}
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                disabled={loading}
+              >
+                {loading ? "Processing..." : "Confirm & Submit"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleShowConfirmation}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Lorry Selection */}
           <div>
@@ -538,17 +631,17 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
                           key={entry.product_id}
                           className={`${sizeColors[size]} ${entry.validationError ? "bg-red-100" : ""}`}
                         >
-                          {/* Show size only for the first product in each size group */}
-                          <td className="py-2 px-4 border font-medium">
-                            {isFirstInSizeGroup && (
-                              <div className="font-bold">{size}</div>
-                            )}
+                          {/* product in each size group */}
+                          <td className="py-1 px-4 border font-medium">
+                            { 
+                              <div className="font-medium">{size}</div>
+                            }
                           </td>
-                          <td className="py-2 px-4 border">{entry.product_name}</td>
-                          <td className="py-2 px-4 border text-center">
+                          <td className="py-1 px-4 border">{entry.product_name}</td>
+                          <td className="py-1 px-4 border text-center">
                             {entry.cases_available} cases, {entry.bottles_available} bottles
                           </td>
-                          <td className="py-2 px-4 border">
+                          <td className="py-1 px-4 border">
                             <input
                               type="number"
                               min="0"
@@ -557,7 +650,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
                               className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                             />
                           </td>
-                          <td className="py-2 px-4 border">
+                          <td className="py-1 px-4 border">
                             <input
                               type="number"
                               min="0"
@@ -590,7 +683,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
               className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
               disabled={loading}
             >
-              {loading ? "Processing..." : "Create Loading Transaction"}
+              {loading ? "Processing..." : "Review Loading Transaction"}
             </button>
           </div>
         </div>
