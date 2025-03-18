@@ -11,6 +11,8 @@ import InventoryManagementPage from "./pages/InventoryManagementPage";
 import LoadingManagementPage from "./pages/LoadingManagementPage";
 import InventoryReportsPage from "./pages/InventoryReportsPage";
 import ManagementPage from "./pages/ManagementPage";
+import DiscountPage from "./pages/DiscountManagementPage";
+import DiscountManagementPage from "./pages/DiscountManagementPage";
 
 const AppLayout = ({ children }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -67,6 +69,14 @@ const App = () => {
               element={
                 <AppLayout>
                   <LoadingManagementPage />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/discounts"
+              element={
+                <AppLayout>
+                  <DiscountManagementPage />
                 </AppLayout>
               }
             />
