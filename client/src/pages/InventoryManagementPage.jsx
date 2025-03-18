@@ -3,6 +3,7 @@ import InventoryTable from "../components/InventoryTable";
 import AddNewStockForm from "../components/AddNewStockForm";
 import InventoryHistory from "../components/InventoryHistory"; // Added missing import
 import axios from "axios";
+import { useSearchParams } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -18,8 +19,15 @@ const InventoryManagementPage = () => {
   const [availableBrands, setAvailableBrands] = useState([]);
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("");
+  const [searchParams] = useSearchParams();
 
   const tabs = ["Available Stock", "Add New Stock", "Stock History"];
+
+  useEffect(() => {
+    searchParams.get("tab") &&
+      searchParams.get("tab") === "add-new-stock" &&
+      setActiveTab("Add New Stock");
+  }, [searchParams]);
 
   // Fetch product data
   useEffect(() => {
@@ -123,7 +131,7 @@ const InventoryManagementPage = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="mx-auto p-4">
       <div className="border-b-2 border-gray-200">
         <nav className="flex">
           {tabs.map((tab) => (
