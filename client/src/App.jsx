@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
@@ -11,18 +11,32 @@ import InventoryManagementPage from "./pages/InventoryManagementPage";
 import LoadingManagementPage from "./pages/LoadingManagementPage";
 import InventoryReportsPage from "./pages/InventoryReportsPage";
 import ManagementPage from "./pages/ManagementPage";
+import DiscountPage from "./pages/DiscountManagementPage";
+import DiscountManagementPage from "./pages/DiscountManagementPage";
 
-const AppLayout = ({ children }) => (
-  <div className="flex h-screen bg-blue-1">
-    <Sidebar />
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <Header />
-      <main className="flex-1 overflow-x-hidden overflow-y-auto p-4">
-        {children}
-      </main>
+const AppLayout = ({ children }) => {
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(!isSidebarCollapsed);
+  };
+
+  return (
+    <div className="flex h-screen bg-blue-1 relative">
+      <Sidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} />
+      <div
+        className={`flex-1 flex flex-col overflow-hidden transition-all duration-300`}
+      >
+        <div className="absolute inset-0 max-h-min">
+          <Header isSidebarCollapsed={isSidebarCollapsed} />
+        </div>
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 mt-[76px]">
+          {children}
+        </main>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const App = () => {
   return (
@@ -55,6 +69,14 @@ const App = () => {
               element={
                 <AppLayout>
                   <LoadingManagementPage />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/discounts"
+              element={
+                <AppLayout>
+                  <DiscountManagementPage />
                 </AppLayout>
               }
             />

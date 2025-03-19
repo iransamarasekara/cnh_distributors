@@ -9,21 +9,10 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
   const [success, setSuccess] = useState(false);
   const [lorries, setLorries] = useState([]);
   const [products, setProducts] = useState([]);
-  // Group products by name and size for filtering
-  const [productNames, setProductNames] = useState([]);
-  const [productSizes, setProductSizes] = useState([]);
-  const [loadingItems, setLoadingItems] = useState([
-    {
-      product_id: "",
-      product_name: "",
-      product_size: "",
-      cases_loaded: 0,
-      bottles_loaded: 0,
-      inventory: null,
-      validationError: "",
-    },
-  ]);
+  const [productEntries, setProductEntries] = useState([]);
   const [loadedLorries, setLoadedLorries] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -40,6 +29,43 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
     return acc;
   }, {});
 
+  // Custom size order mapping
+  const sizeOrderMap = {
+    "175mL": 1,
+    "300mL": 2,
+    "750mL": 3,
+    "250mL": 4,
+    "400mL": 5,
+    "1L": 6,
+    "1050mL": 7,
+    "1.5L": 8,
+    "2L": 9
+  };
+
+  // Helper function to get order value based on custom size order
+  const getSizeOrderValue = (sizeStr) => {
+    // Try direct match
+    if (sizeOrderMap[sizeStr]) {
+      return sizeOrderMap[sizeStr];
+    }
+    
+    // Handle alternative formats (e.g., "1,5L" vs "1.5L")
+    const normalizedSize = sizeStr.replace(',', '.').toUpperCase();
+    if (sizeOrderMap[normalizedSize]) {
+      return sizeOrderMap[normalizedSize];
+    }
+    
+    // Extract numeric part for unknown sizes
+    const match = sizeStr.match(/(\d+(?:[.,]\d+)?)([mL|L]+)/i);
+    if (!match) return 1000; // Unknown sizes at the end
+    
+    const [, value, unit] = match;
+    const numValue = parseFloat(value.replace(',', '.'));
+    
+    // Convert to milliliters for consistent comparison
+    return unit.toLowerCase() === 'l' ? numValue * 1000 : numValue;
+  };
+
   // Fetch lorries, products, and active loading transactions on component mount
   useEffect(() => {
     const fetchLorries = async () => {
@@ -54,50 +80,40 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
     const fetchProducts = async () => {
       try {
         const response = await axios.get(`${API_URL}/products`);
-        setProducts(response.data);
-
-        // Define custom size order
-        const sizeOrder = {
-          "175 mL": 1,
-          "250 mL": 2,
-          "300 mL": 3,
-          "355 mL": 4,
-          "400 mL": 5,
-          "500 mL": 6,
-          "750 mL": 7,
-          "1 L": 8,
-          "1050 mL": 9,
-          "1.5 L": 10,
-          "2 L": 11,
-        };
-
-        // Extract unique product names and sort alphabetically
-        const names = [
-          ...new Set(response.data.map((product) => product.product_name)),
-        ].sort();
-
-        // Extract unique sizes and sort by custom order
-        const sizes = [
-          ...new Set(response.data.map((product) => product.size)),
-        ].sort((a, b) => {
-          // If both sizes are in the sizeOrder object, sort by their order value
-          if (sizeOrder[a] !== undefined && sizeOrder[b] !== undefined) {
-            return sizeOrder[a] - sizeOrder[b];
-          }
-          // If only one size is in the order, prioritize the one that is
-          else if (sizeOrder[a] !== undefined) {
-            return -1;
-          } else if (sizeOrder[b] !== undefined) {
-            return 1;
-          }
-          // If neither size is in the order, maintain alphabetical sorting
-          else {
-            return a.localeCompare(b);
-          }
+        const allProducts = response.data;
+        setProducts(allProducts);
+        
+        // Create product entries with inventory data and loading quantities
+        const entries = allProducts.map(product => {
+          const inventory = inventoryByProductId[product.product_id] || { 
+            cases_qty: 0, 
+            bottles_qty: 0 
+          };
+          
+          return {
+            product_id: product.product_id,
+            product_name: product.product_name,
+            product_size: product.size,
+            bottles_per_case: product.bottles_per_case,
+            cases_loaded: 0,
+            bottles_loaded: 0,
+            cases_available: inventory.cases_qty || 0,
+            bottles_available: inventory.bottles_qty || 0,
+            validationError: "",
+            isVisible: true,
+            sizeOrderValue: getSizeOrderValue(product.size)
+          };
         });
-
-        setProductNames(names);
-        setProductSizes(sizes);
+        
+        // Sort by custom size order first, then by product name
+        entries.sort((a, b) => {
+          if (a.sizeOrderValue === b.sizeOrderValue) {
+            return a.product_name.localeCompare(b.product_name);
+          }
+          return a.sizeOrderValue - b.sizeOrderValue;
+        });
+        
+        setProductEntries(entries);
       } catch (err) {
         console.error("Failed to fetch products:", err);
       }
@@ -127,7 +143,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
     fetchLorries();
     fetchProducts();
     fetchActiveLoadingTransactions();
-  }, []);
+  }, [inventoryData]);
 
   // Handle form input changes
   const handleInputChange = (e) => {
@@ -151,6 +167,21 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
     setFormData({ ...formData, [name]: value });
   };
 
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    const term = e.target.value.toLowerCase();
+    setSearchTerm(term);
+    
+    // Filter product entries based on search term
+    setProductEntries(prevEntries => 
+      prevEntries.map(entry => ({
+        ...entry,
+        isVisible: entry.product_name.toLowerCase().includes(term) || 
+                   entry.product_size.toLowerCase().includes(term)
+      }))
+    );
+  };
+
   // Normalize inventory values (convert bottles to cases when needed)
   const normalizeInventoryQuantities = (
     productId,
@@ -158,8 +189,9 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
     bottlesLoaded
   ) => {
     const inventory = inventoryByProductId[productId];
-
-    if (!inventory) {
+    const product = products.find(p => p.product_id === productId);
+    
+    if (!inventory || !product) {
       return {
         cases: casesLoaded,
         bottles: bottlesLoaded,
@@ -167,8 +199,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
       };
     }
 
-    // Default bottles per case if not available
-    const bottlesPerCase = 12;
+    const bottlesPerCase = product.bottles_per_case;
 
     let finalCases = parseInt(casesLoaded) || 0;
     let finalBottles = parseInt(bottlesLoaded) || 0;
@@ -198,115 +229,37 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
     return { cases: finalCases, bottles: finalBottles, error: null };
   };
 
-  // Handle loading item changes with validation
-  const handleLoadingItemChange = (index, field, value) => {
-    const updatedItems = [...loadingItems];
-    updatedItems[index][field] = value;
-    updatedItems[index].validationError = "";
-
-    // If product name or size changed, update the product_id and check inventory
-    if (field === "product_name" || field === "product_size") {
-      const selectedName =
-        field === "product_name" ? value : updatedItems[index].product_name;
-      const selectedSize =
-        field === "product_size" ? value : updatedItems[index].product_size;
-
-      // Find matching product
-      if (selectedName && selectedSize) {
-        const matchingProduct = products.find(
-          (p) => p.product_name === selectedName && p.size === selectedSize
-        );
-
-        if (matchingProduct) {
-          updatedItems[index].product_id = matchingProduct.product_id;
-          // Update inventory reference
-          updatedItems[index].inventory =
-            inventoryByProductId[matchingProduct.product_id] || null;
-
-          // Validate current quantities against inventory
-          if (updatedItems[index].inventory) {
-            const { cases, bottles, error } = normalizeInventoryQuantities(
-              matchingProduct.product_id,
-              updatedItems[index].cases_loaded,
-              updatedItems[index].bottles_loaded
-            );
-
-            updatedItems[index].cases_loaded = cases;
-            updatedItems[index].bottles_loaded = bottles;
-            updatedItems[index].validationError = error || "";
-          }
-        } else {
-          updatedItems[index].product_id = "";
-          updatedItems[index].inventory = null;
-        }
-      } else {
-        updatedItems[index].product_id = "";
-        updatedItems[index].inventory = null;
-      }
-    }
-
-    // If cases or bottles changed, validate and normalize
-    if (field === "cases_loaded" || field === "bottles_loaded") {
-      if (updatedItems[index].product_id) {
+  // Handle product quantity change
+  const handleQuantityChange = (productId, field, value) => {
+    setProductEntries(prevEntries => 
+      prevEntries.map(entry => {
+        if (entry.product_id !== productId) return entry;
+        
+        const updatedEntry = { ...entry };
+        updatedEntry[field] = value;
+        
+        // Validate and normalize quantities
         const { cases, bottles, error } = normalizeInventoryQuantities(
-          updatedItems[index].product_id,
-          field === "cases_loaded" ? value : updatedItems[index].cases_loaded,
-          field === "bottles_loaded"
-            ? value
-            : updatedItems[index].bottles_loaded
+          productId,
+          field === "cases_loaded" ? value : entry.cases_loaded,
+          field === "bottles_loaded" ? value : entry.bottles_loaded
         );
-
-        updatedItems[index].cases_loaded = cases;
-        updatedItems[index].bottles_loaded = bottles;
-        updatedItems[index].validationError = error || "";
-      }
-    }
-
-    setLoadingItems(updatedItems);
+        
+        updatedEntry.cases_loaded = cases;
+        updatedEntry.bottles_loaded = bottles;
+        updatedEntry.validationError = error || "";
+        
+        return updatedEntry;
+      })
+    );
   };
 
-  // Add another loading item
-  const addLoadingItem = () => {
-    setLoadingItems([
-      ...loadingItems,
-      {
-        product_id: "",
-        product_name: "",
-        product_size: "",
-        cases_loaded: 0,
-        bottles_loaded: 0,
-        inventory: null,
-        validationError: "",
-      },
-    ]);
-  };
-
-  // Remove a loading item
-  const removeLoadingItem = (index) => {
-    if (loadingItems.length > 1) {
-      const updatedItems = [...loadingItems];
-      updatedItems.splice(index, 1);
-      setLoadingItems(updatedItems);
-    }
-  };
-
-  // Get available inventory for a product
-  const getAvailableInventory = (productId) => {
-    const inventory = inventoryByProductId[productId];
-    if (!inventory) return "N/A";
-    return `${inventory.cases_qty || 0} cases, ${
-      inventory.bottles_qty || 0
-    } bottles`;
-  };
-
-  // Submit the form
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
+  // Validate form before showing confirmation
+  const validateForm = () => {
     // Validate form data
     if (!formData.lorry_id || !formData.loaded_by) {
       setError("Please fill in all required fields");
-      return;
+      return false;
     }
 
     // Double-check if the lorry already has an active loading
@@ -314,39 +267,56 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
       setError(
         `This lorry already has an active loading. It must be unloaded before creating a new loading.`
       );
-      return;
+      return false;
     }
 
-    // Check for any validation errors in loading items
-    const itemWithError = loadingItems.find((item) => item.validationError);
+    // Filter out products with no quantities
+    const productsToLoad = productEntries.filter(
+      entry => (parseInt(entry.cases_loaded) > 0 || parseInt(entry.bottles_loaded) > 0)
+    );
+    
+    if (productsToLoad.length === 0) {
+      setError("Please enter quantities for at least one product");
+      return false;
+    }
+    
+    // Check for validation errors
+    const itemWithError = productsToLoad.find(item => item.validationError);
     if (itemWithError) {
       setError(
-        `Please fix validation errors: ${itemWithError.validationError}`
+        `Please fix validation error for ${itemWithError.product_name} ${itemWithError.product_size}: ${itemWithError.validationError}`
       );
-      return;
+      return false;
     }
 
-    // Validate loading items
-    const invalidItems = loadingItems.filter(
-      (item) =>
-        !item.product_id ||
-        (parseInt(item.cases_loaded) === 0 &&
-          parseInt(item.bottles_loaded) === 0)
-    );
+    return true;
+  };
 
-    if (invalidItems.length > 0) {
-      setError("Please select products and enter valid quantities");
-      return;
+  // Show confirmation dialog
+  const handleShowConfirmation = (e) => {
+    e.preventDefault();
+    
+    if (validateForm()) {
+      setError(null);
+      setShowConfirmation(true);
     }
+  };
 
+  // Submit the form after confirmation
+  const handleSubmit = async () => {
     try {
       setLoading(true);
       setError(null);
 
+      // Filter out products with no quantities
+      const productsToLoad = productEntries.filter(
+        entry => (parseInt(entry.cases_loaded) > 0 || parseInt(entry.bottles_loaded) > 0)
+      );
+
       // Prepare the request payload
       const loadingData = {
         ...formData,
-        loadingDetails: loadingItems.map((item) => ({
+        loadingDetails: productsToLoad.map(item => ({
           product_id: item.product_id,
           cases_loaded: parseInt(item.cases_loaded),
           bottles_loaded: parseInt(item.bottles_loaded),
@@ -357,6 +327,8 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
       await axios.post(`${API_URL}/loading-transactions`, loadingData);
 
       setSuccess(true);
+      setShowConfirmation(false);
+      
       // Reset form
       setFormData({
         lorry_id: "",
@@ -365,17 +337,16 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
         loaded_by: "",
         status: "Completed",
       });
-      setLoadingItems([
-        {
-          product_id: "",
-          product_name: "",
-          product_size: "",
+      
+      // Reset product quantities
+      setProductEntries(prevEntries => 
+        prevEntries.map(entry => ({
+          ...entry,
           cases_loaded: 0,
           bottles_loaded: 0,
-          inventory: null,
-          validationError: "",
-        },
-      ]);
+          validationError: ""
+        }))
+      );
 
       // Notify parent component
       if (onLoadingAdded) {
@@ -391,10 +362,68 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
       setError(
         err.response?.data?.message || "Failed to create loading transaction"
       );
+      setShowConfirmation(false);
     } finally {
       setLoading(false);
     }
   };
+
+  // Cancel confirmation
+  const handleCancelConfirmation = () => {
+    setShowConfirmation(false);
+  };
+
+  // Get unique product sizes for color coding
+  const uniqueSizes = [...new Set(productEntries.map(entry => entry.product_size))];
+  
+  // Modern gradient colors for each unique size
+  const sizeColors = {};
+  const gradients = [
+   'bg-gradient-to-r from-sky-50 to-sky-100',       // Soft Sky Blue
+  'bg-gradient-to-r from-rose-50 to-rose-100',     // Soft Rose Pink
+  'bg-gradient-to-r from-emerald-50 to-emerald-100', // Fresh Emerald Green
+  'bg-gradient-to-r from-amber-50 to-amber-100',   // Warm Amber
+  'bg-gradient-to-r from-violet-50 to-violet-100', // Modern Soft Violet
+  'bg-gradient-to-r from-fuchsia-50 to-fuchsia-100', // Trendy Fuchsia
+  'bg-gradient-to-r from-lime-50 to-lime-100',     // Refreshing Lime
+  'bg-gradient-to-r from-cyan-50 to-cyan-100',     // Light Cyan Blue
+  'bg-gradient-to-r from-indigo-50 to-indigo-100'  // Stylish Indigo
+  ];
+  
+  // Ordered sizes based on our custom mapping
+  const orderedSizes = [...uniqueSizes].sort((a, b) => {
+    return getSizeOrderValue(a) - getSizeOrderValue(b);
+  });
+  
+  // Assign gradient colors to each size in our ordered list
+  orderedSizes.forEach((size, index) => {
+    sizeColors[size] = gradients[index % gradients.length];
+  });
+
+  // Filter visible products and group by size
+  const visibleProducts = productEntries.filter(entry => entry.isVisible);
+  
+  // Group products by size
+  const groupedProducts = {};
+  visibleProducts.forEach(product => {
+    if (!groupedProducts[product.product_size]) {
+      groupedProducts[product.product_size] = [];
+    }
+    groupedProducts[product.product_size].push(product);
+  });
+  
+  // Get sizes in our custom order
+  const sortedSizes = Object.keys(groupedProducts).sort((a, b) => {
+    return getSizeOrderValue(a) - getSizeOrderValue(b);
+  });
+
+  // Get products to load for confirmation dialog
+  const productsToLoad = productEntries.filter(
+    entry => (parseInt(entry.cases_loaded) > 0 || parseInt(entry.bottles_loaded) > 0)
+  );
+
+  // Get selected lorry details
+  const selectedLorry = lorries.find(lorry => lorry.lorry_id === formData.lorry_id);
 
   return (
     <div className="p-6">
@@ -412,7 +441,66 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
+      {/* Confirmation Modal */}
+      {showConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold mb-4">Confirm Loading Transaction</h3>
+            
+            <div className="mb-4">
+              <p className="font-semibold">Lorry Details:</p>
+              <p>Lorry: {selectedLorry ? `${selectedLorry.lorry_number} - ${selectedLorry.driver_name}` : ''}</p>
+              <p>Loaded By: {formData.loaded_by}</p>
+              <p>Date: {formData.loading_date}</p>
+              <p>Time: {formData.loading_time}</p>
+            </div>
+            
+            <div className="mb-4">
+              <p className="font-semibold mb-2">Products to Load:</p>
+              <div className="overflow-x-auto">
+                <table className="min-w-full border">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="py-2 px-4 border  text-left">Product</th>
+                      <th className="py-2 px-4 border  text-left">Size</th>
+                      <th className="py-2 px-4 border  text-center">Cases</th>
+                      <th className="py-2 px-4 border  text-center">Bottles</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {productsToLoad.map((product) => (
+                      <tr key={product.product_id}>
+                        <td className="py-1 px-4 border ">{product.product_name}</td>
+                        <td className="py-1 px-4 border ">{product.product_size}</td>
+                        <td className="py-1 px-4 border  text-center">{product.cases_loaded}</td>
+                        <td className="py-1 px-4 border  text-center">{product.bottles_loaded}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={handleCancelConfirmation}
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                disabled={loading}
+              >
+                {loading ? "Processing..." : "Confirm & Submit"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleShowConfirmation}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Lorry Selection */}
           <div>
@@ -503,149 +591,100 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
           </div>
         </div>
 
-        {/* Loading Items */}
+        {/* Product Search */}
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2">
+            Search Products
+          </label>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={handleSearchChange}
+            placeholder="Search by product name or size..."
+            className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          />
+        </div>
+
+        {/* Products List */}
         <div className="mb-6">
           <h3 className="text-lg font-medium mb-4">Products to Load</h3>
-
-          {loadingItems.map((item, index) => (
-            <div key={index} className="flex flex-wrap -mx-3 mb-4 items-end">
-              {/* Product Name Selection */}
-              <div className="px-3 w-full md:w-2/6">
-                <label className="block text-gray-700 text-sm font-bold mb-2">
-                  Product Name*
-                </label>
-                <select
-                  value={item.product_name}
-                  onChange={(e) =>
-                    handleLoadingItemChange(
-                      index,
-                      "product_name",
-                      e.target.value
-                    )
-                  }
-                  className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                  required
-                >
-                  <option value="">Select Product</option>
-                  {productNames.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Product Size Selection */}
-              <div className="px-3 w-full md:w-1/6">
-                <label className="block text-gray-700 text-sm font-bold mb-2">
-                  Product Size*
-                </label>
-                <select
-                  value={item.product_size}
-                  onChange={(e) =>
-                    handleLoadingItemChange(
-                      index,
-                      "product_size",
-                      e.target.value
-                    )
-                  }
-                  className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                  required
-                >
-                  <option value="">Select Size</option>
-                  {productSizes.map((size) => (
-                    <option key={size} value={size}>
-                      {size}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="px-3 w-1/2 md:w-1/12">
-                <label className="block text-gray-700 text-sm font-bold mb-2">
-                  Cases
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={item.cases_loaded}
-                  onChange={(e) =>
-                    handleLoadingItemChange(
-                      index,
-                      "cases_loaded",
-                      e.target.value
-                    )
-                  }
-                  className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                />
-              </div>
-
-              <div className="px-3 w-1/2 md:w-1/12">
-                <label className="block text-gray-700 text-sm font-bold mb-2">
-                  Bottles
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={item.bottles_loaded}
-                  onChange={(e) =>
-                    handleLoadingItemChange(
-                      index,
-                      "bottles_loaded",
-                      e.target.value
-                    )
-                  }
-                  className="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                />
-              </div>
-
-              <div className="px-3 w-full md:w-1/6">
-                {item.product_id && (
-                  <div className="text-sm">
-                    <span className="font-semibold">Available:</span>{" "}
-                    {getAvailableInventory(item.product_id)}
-                    {item.validationError && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {item.validationError}
-                      </p>
-                    )}
-                  </div>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white border border-white">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="py-2 px-4 border-2 border-white text-left">Size</th>
+                  <th className="py-2 px-4 border-2 border-white text-left">Product Name</th>
+                  <th className="py-2 px-4 border-2 border-white text-center">Available</th>
+                  <th className="py-2 px-4 border-2 border-white text-center">Cases</th>
+                  <th className="py-2 px-4 border-2 border-white text-center">Bottles</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleProducts.length > 0 ? (
+                  sortedSizes.map((size) => (
+                    // For each size, render all products of that size
+                    groupedProducts[size].map((entry, index) => {
+                      const isFirstInSizeGroup = index === 0;
+                      return (
+                        <tr 
+                          key={entry.product_id}
+                          className={`${sizeColors[size]} ${entry.validationError ? "bg-red-100" : ""}`}
+                        >
+                          {/* product in each size group */}
+                          <td className="py-1 px-4 border-2 border-white font-medium">
+                            { 
+                              <div className="font-medium">{size}</div>
+                            }
+                          </td>
+                          <td className="py-1 px-4 border-2 border-white">{entry.product_name}</td>
+                          <td className="py-1 px-4 border-2 border-white text-center">
+                            {entry.cases_available} cases, {entry.bottles_available} bottles
+                          </td>
+                          <td className="py-1 px-4 border-2 border-white">
+                            <input
+                              type="number"
+                              min="0"
+                              value={entry.cases_loaded}
+                              onChange={(e) => handleQuantityChange(entry.product_id, "cases_loaded", e.target.value)}
+                              className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            />
+                          </td>
+                          <td className="py-1 px-4 border border-white">
+                            <input
+                              type="number"
+                              min="0"
+                              value={entry.bottles_loaded}
+                              onChange={(e) => handleQuantityChange(entry.product_id, "bottles_loaded", e.target.value)}
+                              className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            />
+                            {entry.validationError && (
+                              <p className="text-red-500 text-xs mt-1">{entry.validationError}</p>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="py-4 text-center text-gray-500">
+                      No products match your search. Try a different search term.
+                    </td>
+                  </tr>
                 )}
-              </div>
-
-              <div className="px-3 w-full md:w-1/6 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => removeLoadingItem(index)}
-                  className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                  disabled={loadingItems.length === 1}
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-          ))}
-          <div className="flex justify-between items-center">
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={addLoadingItem}
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-              >
-                Add Product
-              </button>
-            </div>
-            <div className="flex items-center justify-end">
-              <button
-                type="submit"
-                className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                disabled={
-                  loading || loadingItems.some((item) => item.validationError)
-                }
-              >
-                {loading ? "Processing..." : "Create Loading Transaction"}
-              </button>
-            </div>
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="mt-6 flex justify-end">
+            <button
+              type="submit"
+              className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              disabled={loading}
+            >
+              {loading ? "Processing..." : "Review Loading Transaction"}
+            </button>
           </div>
         </div>
       </form>

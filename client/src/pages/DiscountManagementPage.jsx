@@ -1,129 +1,131 @@
 import React, { useState, useEffect } from "react";
-import InventoryTable from "../components/InventoryTable";
-import AddNewStockForm from "../components/AddNewStockForm";
-import InventoryHistory from "../components/InventoryHistory"; // Added missing import
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-const InventoryManagementPage = () => {
-  const [activeTab, setActiveTab] = useState("Available Stock");
-  const [sortOption, setSortOption] = useState("Size");
-  const [inventoryData, setInventoryData] = useState([]);
+// These would be your actual components
+// import DiscountTable from "../components/DiscountTable";
+// import AddNewDiscountForm from "../components/AddNewDiscountForm";
+// import DiscountHistory from "../components/DiscountHistory";
+
+const DiscountManagementPage = () => {
+  const [activeTab, setActiveTab] = useState("Active Discounts");
+  const [sortOption, setSortOption] = useState("Expiration");
+  const [discountData, setDiscountData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // For filters
-  const [availableSizes, setAvailableSizes] = useState([]);
-  const [availableBrands, setAvailableBrands] = useState([]);
-  const [selectedSize, setSelectedSize] = useState("");
-  const [selectedBrand, setSelectedBrand] = useState("");
+  const [availableTypes, setAvailableTypes] = useState([]);
+  const [availableProducts, setAvailableProducts] = useState([]);
+  const [selectedType, setSelectedType] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState("");
   const [searchParams] = useSearchParams();
 
-  const tabs = ["Available Stock", "Add New Stock", "Stock History"];
+  const tabs = ["Active Discounts", "Add New Discount", "Discount History"];
 
   useEffect(() => {
     searchParams.get("tab") &&
-      searchParams.get("tab") === "add-new-stock" &&
-      setActiveTab("Add New Stock");
+      searchParams.get("tab") === "add-new-discount" &&
+      setActiveTab("Add New Discount");
   }, [searchParams]);
 
-  // Fetch product data
+  // Fetch discount data
   useEffect(() => {
-    const fetchInventory = async () => {
+    const fetchDiscounts = async () => {
       try {
         setIsLoading(true);
         const params = {};
 
-        if (selectedSize) {
-          params.size = selectedSize;
+        if (selectedType) {
+          params.type = selectedType;
         }
 
-        if (selectedBrand) {
-          params.brand = selectedBrand;
+        if (selectedProduct) {
+          params.product = selectedProduct;
         }
 
         if (sortOption) {
           params.sortBy = sortOption;
         }
 
-        const response = await axios.get(`${API_URL}/products`, { params });
+        const response = await axios.get(`${API_URL}/discounts`, { params });
 
-        setInventoryData(response.data);
+        setDiscountData(response.data);
         setError(null);
       } catch (err) {
-        setError("Failed to fetch inventory data");
+        setError("Failed to fetch discount data");
         console.error(err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    // Fetch available sizes for filtering
-    const fetchSizes = async () => {
+    // Fetch available discount types for filtering
+    const fetchTypes = async () => {
       try {
-        const response = await axios.get(`${API_URL}/products/sizes`);
-        setAvailableSizes(response.data);
+        const response = await axios.get(`${API_URL}/discounts/types`);
+        setAvailableTypes(response.data);
       } catch (err) {
-        console.error("Failed to fetch sizes:", err);
+        console.error("Failed to fetch discount types:", err);
       }
     };
 
-    // Fetch available brands for filtering
-    const fetchBrands = async () => {
+    // Fetch available products for filtering
+    const fetchProducts = async () => {
       try {
-        const response = await axios.get(`${API_URL}/products/brands`);
-        setAvailableBrands(response.data);
+        const response = await axios.get(`${API_URL}/products/names`);
+        setAvailableProducts(response.data);
       } catch (err) {
-        console.error("Failed to fetch brands:", err);
+        console.error("Failed to fetch products:", err);
       }
     };
 
-    fetchInventory();
-    fetchSizes();
-    fetchBrands();
-  }, [selectedSize, selectedBrand, sortOption]);
+    fetchDiscounts();
+    fetchTypes();
+    fetchProducts();
+  }, [selectedType, selectedProduct, sortOption]);
 
   // Handle sort change
   const handleSortChange = (option) => {
     setSortOption(option);
   };
 
-  // Handle size filter change
-  const handleSizeChange = (e) => {
-    setSelectedSize(e.target.value);
+  // Handle type filter change
+  const handleTypeChange = (e) => {
+    setSelectedType(e.target.value);
   };
 
-  // Handle brand filter change
-  const handleBrandChange = (e) => {
-    setSelectedBrand(e.target.value);
+  // Handle product filter change
+  const handleProductChange = (e) => {
+    setSelectedProduct(e.target.value);
   };
 
-  // Function to refresh inventory data
-  const refreshInventory = async () => {
+  // Function to refresh discount data
+  const refreshDiscounts = async () => {
     try {
       setIsLoading(true);
       const params = {};
 
-      if (selectedSize) {
-        params.size = selectedSize;
+      if (selectedType) {
+        params.type = selectedType;
       }
 
-      if (selectedBrand) {
-        params.brand = selectedBrand;
+      if (selectedProduct) {
+        params.product = selectedProduct;
       }
 
       if (sortOption) {
         params.sortBy = sortOption;
       }
 
-      const response = await axios.get(`${API_URL}/products`, { params });
+      const response = await axios.get(`${API_URL}/discounts`, { params });
 
-      setInventoryData(response.data);
+      setDiscountData(response.data);
       setError(null);
     } catch (err) {
-      setError("Failed to refresh inventory data");
+      setError("Failed to refresh discount data");
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -150,23 +152,23 @@ const InventoryManagementPage = () => {
         </nav>
       </div>
 
-      {activeTab === "Available Stock" && (
+      {activeTab === "Active Discounts" && (
         <div className="mt-6">
           <div className="mb-4 flex justify-between items-center">
             <div>
               <p className="text-sm text-gray-600 mb-2">Filters</p>
               <div className="flex space-x-4 mb-4">
-                {/* Size Filter */}
+                {/* Discount Type Filter */}
                 <div className="relative">
                   <select
                     className="appearance-none border border-gray-300 rounded px-4 py-2 pr-8 bg-white text-gray-700 w-40 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    value={selectedSize}
-                    onChange={handleSizeChange}
+                    value={selectedType}
+                    onChange={handleTypeChange}
                   >
-                    <option value="">All Sizes</option>
-                    {availableSizes.map((size) => (
-                      <option key={size} value={size}>
-                        {size}
+                    <option value="">All Types</option>
+                    {availableTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
                       </option>
                     ))}
                   </select>
@@ -185,17 +187,17 @@ const InventoryManagementPage = () => {
                   </div>
                 </div>
 
-                {/* Brand Filter */}
+                {/* Product Filter */}
                 <div className="relative">
                   <select
                     className="appearance-none border border-gray-300 rounded px-4 py-2 pr-8 bg-white text-gray-700 w-40 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    value={selectedBrand}
-                    onChange={handleBrandChange}
+                    value={selectedProduct}
+                    onChange={handleProductChange}
                   >
-                    <option value="">All Brands</option>
-                    {availableBrands.map((brand) => (
-                      <option key={brand} value={brand}>
-                        {brand}
+                    <option value="">All Products</option>
+                    {availableProducts.map((product) => (
+                      <option key={product} value={product}>
+                        {product}
                       </option>
                     ))}
                   </select>
@@ -218,7 +220,7 @@ const InventoryManagementPage = () => {
             <div>
               <p className="text-sm text-gray-600 mb-2">Sort by</p>
               <div className="flex space-x-4">
-                {["Size", "Brand", "Count"].map((option) => (
+                {["Expiration", "Amount", "Type"].map((option) => (
                   <div key={option} className="relative">
                     <button
                       className={`border border-gray-300 rounded px-4 py-2 bg-white text-gray-700 w-32 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
@@ -237,36 +239,28 @@ const InventoryManagementPage = () => {
           </div>
 
           {isLoading ? (
-            <div className="text-center py-6">Loading inventory data...</div>
+            <div className="text-center py-6">Loading discount data...</div>
           ) : error ? (
             <div className="text-center py-6 text-red-500">{error}</div>
           ) : (
-            <InventoryTable inventoryData={inventoryData} />
+            <DiscountTable discountData={discountData} onRefresh={refreshDiscounts} />
           )}
         </div>
       )}
 
-      {activeTab === "Add New Stock" && (
+      {activeTab === "Add New Discount" && (
         <div className="mt-6">
-          <AddNewStockForm onInventoryAdded={refreshInventory} />
+          <AddNewDiscountForm onDiscountAdded={refreshDiscounts} />
         </div>
       )}
 
-      {activeTab === "Stock History" && (
+      {activeTab === "Discount History" && (
         <div className="mt-6">
-          <InventoryHistory />
-        </div>
-      )}
-
-      {activeTab === "Overview" && (
-        <div className="mt-6 p-4 border rounded">
-          <h2 className="text-lg font-semibold mb-4">Inventory Overview</h2>
-          {/* You can implement your overview dashboard here */}
-          <p>Overview statistics will go here</p>
+          <DiscountHistory />
         </div>
       )}
     </div>
   );
 };
 
-export default InventoryManagementPage;
+export default DiscountManagementPage;

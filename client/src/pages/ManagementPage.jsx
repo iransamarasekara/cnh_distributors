@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { useSearchParams } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -34,6 +35,17 @@ const ManagementPage = () => {
     brand: "",
     sortBy: "",
   });
+
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    searchParams.get("tab") &&
+      searchParams.get("tab") === "lorry" &&
+      setActiveTab("lorry");
+    searchParams.get("tab") &&
+      searchParams.get("tab") === "product" &&
+      setActiveTab("product");
+  }, [searchParams]);
 
   // Fetch lorries on component mount
   useEffect(() => {
