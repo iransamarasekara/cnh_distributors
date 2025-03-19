@@ -335,7 +335,7 @@ const Dashboard = () => {
                 <div className="bg-gradient-to-br from-teal-100 to-teal-200 p-5 rounded-xl shadow-sm border border-teal-200">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-gray-700 font-medium">Total Revenue</p>
+                      <p className="text-gray-700 font-medium">Total Sale Income</p>
                       <p className="text-3xl font-bold mt-2">
                         {formatCurrency(overviewMetrics.saleIncome).replace(
                           "LKR",
@@ -353,7 +353,7 @@ const Dashboard = () => {
                 <div className="bg-gradient-to-br from-green-100 to-green-200 p-5 rounded-xl shadow-sm border border-green-200">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-gray-700 font-medium">Gross Profit</p>
+                      <p className="text-gray-700 font-medium">Total Sale Profit</p>
                       <p className="text-3xl font-bold mt-2">
                         {formatCurrency(overviewMetrics.grossProfit).replace(
                           "LKR",
@@ -474,7 +474,7 @@ const Dashboard = () => {
           <div className="flex justify-between items-center mb-5">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
               <TrendingUp size={20} className="text-indigo-500" />
-              Revenue & Profit Analysis
+              Sale Income & Profit Analysis
             </h2>
           </div>
 
@@ -507,7 +507,7 @@ const Dashboard = () => {
                   <Line
                     type="monotone"
                     dataKey="income"
-                    name="Revenue"
+                    name="Sale Income"
                     stroke="#4f46e5"
                     strokeWidth={3}
                     dot={{ r: 4, fill: "#4f46e5" }}
@@ -516,7 +516,7 @@ const Dashboard = () => {
                   <Line
                     type="monotone"
                     dataKey="profit"
-                    name="Profit"
+                    name="Sale Profit"
                     stroke="#10b981"
                     strokeWidth={3}
                     dot={{ r: 4, fill: "#10b981" }}
