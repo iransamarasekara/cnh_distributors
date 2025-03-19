@@ -458,22 +458,22 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
             <div className="mb-4">
               <p className="font-semibold mb-2">Products to Load:</p>
               <div className="overflow-x-auto">
-                <table className="min-w-full border border-gray-200">
+                <table className="min-w-full border">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="py-2 px-4 border text-left">Product</th>
-                      <th className="py-2 px-4 border text-left">Size</th>
-                      <th className="py-2 px-4 border text-center">Cases</th>
-                      <th className="py-2 px-4 border text-center">Bottles</th>
+                      <th className="py-2 px-4 border  text-left">Product</th>
+                      <th className="py-2 px-4 border  text-left">Size</th>
+                      <th className="py-2 px-4 border  text-center">Cases</th>
+                      <th className="py-2 px-4 border  text-center">Bottles</th>
                     </tr>
                   </thead>
                   <tbody>
                     {productsToLoad.map((product) => (
                       <tr key={product.product_id}>
-                        <td className="py-1 px-4 border">{product.product_name}</td>
-                        <td className="py-1 px-4 border">{product.product_size}</td>
-                        <td className="py-1 px-4 border text-center">{product.cases_loaded}</td>
-                        <td className="py-1 px-4 border text-center">{product.bottles_loaded}</td>
+                        <td className="py-1 px-4 border ">{product.product_name}</td>
+                        <td className="py-1 px-4 border ">{product.product_size}</td>
+                        <td className="py-1 px-4 border  text-center">{product.cases_loaded}</td>
+                        <td className="py-1 px-4 border  text-center">{product.bottles_loaded}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -610,14 +610,14 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
           <h3 className="text-lg font-medium mb-4">Products to Load</h3>
           
           <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border border-gray-200">
+            <table className="min-w-full bg-white border border-white">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="py-2 px-4 border text-left">Size</th>
-                  <th className="py-2 px-4 border text-left">Product Name</th>
-                  <th className="py-2 px-4 border text-center">Available</th>
-                  <th className="py-2 px-4 border text-center">Cases</th>
-                  <th className="py-2 px-4 border text-center">Bottles</th>
+                  <th className="py-2 px-4 border-2 border-white text-left">Size</th>
+                  <th className="py-2 px-4 border-2 border-white text-left">Product Name</th>
+                  <th className="py-2 px-4 border-2 border-white text-center">Available</th>
+                  <th className="py-2 px-4 border-2 border-white text-center">Cases</th>
+                  <th className="py-2 px-4 border-2 border-white text-center">Bottles</th>
                 </tr>
               </thead>
               <tbody>
@@ -632,16 +632,16 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
                           className={`${sizeColors[size]} ${entry.validationError ? "bg-red-100" : ""}`}
                         >
                           {/* product in each size group */}
-                          <td className="py-1 px-4 border font-medium">
+                          <td className="py-1 px-4 border-2 border-white font-medium">
                             { 
                               <div className="font-medium">{size}</div>
                             }
                           </td>
-                          <td className="py-1 px-4 border">{entry.product_name}</td>
-                          <td className="py-1 px-4 border text-center">
+                          <td className="py-1 px-4 border-2 border-white">{entry.product_name}</td>
+                          <td className="py-1 px-4 border-2 border-white text-center">
                             {entry.cases_available} cases, {entry.bottles_available} bottles
                           </td>
-                          <td className="py-1 px-4 border">
+                          <td className="py-1 px-4 border-2 border-white">
                             <input
                               type="number"
                               min="0"
@@ -650,7 +650,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
                               className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                             />
                           </td>
-                          <td className="py-1 px-4 border">
+                          <td className="py-1 px-4 border border-white">
                             <input
                               type="number"
                               min="0"
