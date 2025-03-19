@@ -39,7 +39,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
     "1L": 6,
     "1050mL": 7,
     "1.5L": 8,
-    "2L": 9
+    "2L": 9,
   };
 
   // Helper function to get order value based on custom size order
@@ -48,22 +48,22 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
     if (sizeOrderMap[sizeStr]) {
       return sizeOrderMap[sizeStr];
     }
-    
+
     // Handle alternative formats (e.g., "1,5L" vs "1.5L")
-    const normalizedSize = sizeStr.replace(',', '.').toUpperCase();
+    const normalizedSize = sizeStr.replace(",", ".").toUpperCase();
     if (sizeOrderMap[normalizedSize]) {
       return sizeOrderMap[normalizedSize];
     }
-    
+
     // Extract numeric part for unknown sizes
     const match = sizeStr.match(/(\d+(?:[.,]\d+)?)([mL|L]+)/i);
     if (!match) return 1000; // Unknown sizes at the end
-    
+
     const [, value, unit] = match;
-    const numValue = parseFloat(value.replace(',', '.'));
-    
+    const numValue = parseFloat(value.replace(",", "."));
+
     // Convert to milliliters for consistent comparison
-    return unit.toLowerCase() === 'l' ? numValue * 1000 : numValue;
+    return unit.toLowerCase() === "l" ? numValue * 1000 : numValue;
   };
 
   // Fetch lorries, products, and active loading transactions on component mount
@@ -82,14 +82,14 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
         const response = await axios.get(`${API_URL}/products`);
         const allProducts = response.data;
         setProducts(allProducts);
-        
+
         // Create product entries with inventory data and loading quantities
-        const entries = allProducts.map(product => {
-          const inventory = inventoryByProductId[product.product_id] || { 
-            cases_qty: 0, 
-            bottles_qty: 0 
+        const entries = allProducts.map((product) => {
+          const inventory = inventoryByProductId[product.product_id] || {
+            cases_qty: 0,
+            bottles_qty: 0,
           };
-          
+
           return {
             product_id: product.product_id,
             product_name: product.product_name,
@@ -101,10 +101,10 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
             bottles_available: inventory.bottles_qty || 0,
             validationError: "",
             isVisible: true,
-            sizeOrderValue: getSizeOrderValue(product.size)
+            sizeOrderValue: getSizeOrderValue(product.size),
           };
         });
-        
+
         // Sort by custom size order first, then by product name
         entries.sort((a, b) => {
           if (a.sizeOrderValue === b.sizeOrderValue) {
@@ -112,7 +112,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
           }
           return a.sizeOrderValue - b.sizeOrderValue;
         });
-        
+
         setProductEntries(entries);
       } catch (err) {
         console.error("Failed to fetch products:", err);
@@ -171,13 +171,14 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
   const handleSearchChange = (e) => {
     const term = e.target.value.toLowerCase();
     setSearchTerm(term);
-    
+
     // Filter product entries based on search term
-    setProductEntries(prevEntries => 
-      prevEntries.map(entry => ({
+    setProductEntries((prevEntries) =>
+      prevEntries.map((entry) => ({
         ...entry,
-        isVisible: entry.product_name.toLowerCase().includes(term) || 
-                   entry.product_size.toLowerCase().includes(term)
+        isVisible:
+          entry.product_name.toLowerCase().includes(term) ||
+          entry.product_size.toLowerCase().includes(term),
       }))
     );
   };
@@ -189,8 +190,8 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
     bottlesLoaded
   ) => {
     const inventory = inventoryByProductId[productId];
-    const product = products.find(p => p.product_id === productId);
-    
+    const product = products.find((p) => p.product_id === productId);
+
     if (!inventory || !product) {
       return {
         cases: casesLoaded,
@@ -231,24 +232,24 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
 
   // Handle product quantity change
   const handleQuantityChange = (productId, field, value) => {
-    setProductEntries(prevEntries => 
-      prevEntries.map(entry => {
+    setProductEntries((prevEntries) =>
+      prevEntries.map((entry) => {
         if (entry.product_id !== productId) return entry;
-        
+
         const updatedEntry = { ...entry };
         updatedEntry[field] = value;
-        
+
         // Validate and normalize quantities
         const { cases, bottles, error } = normalizeInventoryQuantities(
           productId,
           field === "cases_loaded" ? value : entry.cases_loaded,
           field === "bottles_loaded" ? value : entry.bottles_loaded
         );
-        
+
         updatedEntry.cases_loaded = cases;
         updatedEntry.bottles_loaded = bottles;
         updatedEntry.validationError = error || "";
-        
+
         return updatedEntry;
       })
     );
@@ -272,16 +273,17 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
 
     // Filter out products with no quantities
     const productsToLoad = productEntries.filter(
-      entry => (parseInt(entry.cases_loaded) > 0 || parseInt(entry.bottles_loaded) > 0)
+      (entry) =>
+        parseInt(entry.cases_loaded) > 0 || parseInt(entry.bottles_loaded) > 0
     );
-    
+
     if (productsToLoad.length === 0) {
       setError("Please enter quantities for at least one product");
       return false;
     }
-    
+
     // Check for validation errors
-    const itemWithError = productsToLoad.find(item => item.validationError);
+    const itemWithError = productsToLoad.find((item) => item.validationError);
     if (itemWithError) {
       setError(
         `Please fix validation error for ${itemWithError.product_name} ${itemWithError.product_size}: ${itemWithError.validationError}`
@@ -295,7 +297,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
   // Show confirmation dialog
   const handleShowConfirmation = (e) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
       setError(null);
       setShowConfirmation(true);
@@ -310,13 +312,14 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
 
       // Filter out products with no quantities
       const productsToLoad = productEntries.filter(
-        entry => (parseInt(entry.cases_loaded) > 0 || parseInt(entry.bottles_loaded) > 0)
+        (entry) =>
+          parseInt(entry.cases_loaded) > 0 || parseInt(entry.bottles_loaded) > 0
       );
 
       // Prepare the request payload
       const loadingData = {
         ...formData,
-        loadingDetails: productsToLoad.map(item => ({
+        loadingDetails: productsToLoad.map((item) => ({
           product_id: item.product_id,
           cases_loaded: parseInt(item.cases_loaded),
           bottles_loaded: parseInt(item.bottles_loaded),
@@ -328,7 +331,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
 
       setSuccess(true);
       setShowConfirmation(false);
-      
+
       // Reset form
       setFormData({
         lorry_id: "",
@@ -337,14 +340,14 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
         loaded_by: "",
         status: "Completed",
       });
-      
+
       // Reset product quantities
-      setProductEntries(prevEntries => 
-        prevEntries.map(entry => ({
+      setProductEntries((prevEntries) =>
+        prevEntries.map((entry) => ({
           ...entry,
           cases_loaded: 0,
           bottles_loaded: 0,
-          validationError: ""
+          validationError: "",
         }))
       );
 
@@ -374,44 +377,46 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
   };
 
   // Get unique product sizes for color coding
-  const uniqueSizes = [...new Set(productEntries.map(entry => entry.product_size))];
-  
+  const uniqueSizes = [
+    ...new Set(productEntries.map((entry) => entry.product_size)),
+  ];
+
   // Modern gradient colors for each unique size
   const sizeColors = {};
   const gradients = [
-   'bg-gradient-to-r from-sky-50 to-sky-100',       // Soft Sky Blue
-  'bg-gradient-to-r from-rose-50 to-rose-100',     // Soft Rose Pink
-  'bg-gradient-to-r from-emerald-50 to-emerald-100', // Fresh Emerald Green
-  'bg-gradient-to-r from-amber-50 to-amber-100',   // Warm Amber
-  'bg-gradient-to-r from-violet-50 to-violet-100', // Modern Soft Violet
-  'bg-gradient-to-r from-fuchsia-50 to-fuchsia-100', // Trendy Fuchsia
-  'bg-gradient-to-r from-lime-50 to-lime-100',     // Refreshing Lime
-  'bg-gradient-to-r from-cyan-50 to-cyan-100',     // Light Cyan Blue
-  'bg-gradient-to-r from-indigo-50 to-indigo-100'  // Stylish Indigo
+    "bg-gradient-to-r from-sky-50 to-sky-100", // Soft Sky Blue
+    "bg-gradient-to-r from-rose-50 to-rose-100", // Soft Rose Pink
+    "bg-gradient-to-r from-emerald-50 to-emerald-100", // Fresh Emerald Green
+    "bg-gradient-to-r from-amber-50 to-amber-100", // Warm Amber
+    "bg-gradient-to-r from-violet-50 to-violet-100", // Modern Soft Violet
+    "bg-gradient-to-r from-fuchsia-50 to-fuchsia-100", // Trendy Fuchsia
+    "bg-gradient-to-r from-lime-50 to-lime-100", // Refreshing Lime
+    "bg-gradient-to-r from-cyan-50 to-cyan-100", // Light Cyan Blue
+    "bg-gradient-to-r from-indigo-50 to-indigo-100", // Stylish Indigo
   ];
-  
+
   // Ordered sizes based on our custom mapping
   const orderedSizes = [...uniqueSizes].sort((a, b) => {
     return getSizeOrderValue(a) - getSizeOrderValue(b);
   });
-  
+
   // Assign gradient colors to each size in our ordered list
   orderedSizes.forEach((size, index) => {
     sizeColors[size] = gradients[index % gradients.length];
   });
 
   // Filter visible products and group by size
-  const visibleProducts = productEntries.filter(entry => entry.isVisible);
-  
+  const visibleProducts = productEntries.filter((entry) => entry.isVisible);
+
   // Group products by size
   const groupedProducts = {};
-  visibleProducts.forEach(product => {
+  visibleProducts.forEach((product) => {
     if (!groupedProducts[product.product_size]) {
       groupedProducts[product.product_size] = [];
     }
     groupedProducts[product.product_size].push(product);
   });
-  
+
   // Get sizes in our custom order
   const sortedSizes = Object.keys(groupedProducts).sort((a, b) => {
     return getSizeOrderValue(a) - getSizeOrderValue(b);
@@ -419,11 +424,14 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
 
   // Get products to load for confirmation dialog
   const productsToLoad = productEntries.filter(
-    entry => (parseInt(entry.cases_loaded) > 0 || parseInt(entry.bottles_loaded) > 0)
+    (entry) =>
+      parseInt(entry.cases_loaded) > 0 || parseInt(entry.bottles_loaded) > 0
   );
 
   // Get selected lorry details
-  const selectedLorry = lorries.find(lorry => lorry.lorry_id === formData.lorry_id);
+  const selectedLorry = lorries.find(
+    (lorry) => lorry.lorry_id === parseInt(formData.lorry_id)
+  );
 
   return (
     <div className="p-6">
@@ -445,16 +453,23 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
       {showConfirmation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4">Confirm Loading Transaction</h3>
-            
+            <h3 className="text-xl font-bold mb-4">
+              Confirm Loading Transaction
+            </h3>
+
             <div className="mb-4">
               <p className="font-semibold">Lorry Details:</p>
-              <p>Lorry: {selectedLorry ? `${selectedLorry.lorry_number} - ${selectedLorry.driver_name}` : ''}</p>
+              <p>
+                Lorry:{" "}
+                {selectedLorry
+                  ? `${selectedLorry.lorry_number} - ${selectedLorry.driver_name}`
+                  : ""}
+              </p>
               <p>Loaded By: {formData.loaded_by}</p>
               <p>Date: {formData.loading_date}</p>
               <p>Time: {formData.loading_time}</p>
             </div>
-            
+
             <div className="mb-4">
               <p className="font-semibold mb-2">Products to Load:</p>
               <div className="overflow-x-auto">
@@ -470,17 +485,25 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
                   <tbody>
                     {productsToLoad.map((product) => (
                       <tr key={product.product_id}>
-                        <td className="py-1 px-4 border ">{product.product_name}</td>
-                        <td className="py-1 px-4 border ">{product.product_size}</td>
-                        <td className="py-1 px-4 border  text-center">{product.cases_loaded}</td>
-                        <td className="py-1 px-4 border  text-center">{product.bottles_loaded}</td>
+                        <td className="py-1 px-4 border ">
+                          {product.product_name}
+                        </td>
+                        <td className="py-1 px-4 border ">
+                          {product.product_size}
+                        </td>
+                        <td className="py-1 px-4 border  text-center">
+                          {product.cases_loaded}
+                        </td>
+                        <td className="py-1 px-4 border  text-center">
+                          {product.bottles_loaded}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             </div>
-            
+
             <div className="flex justify-end space-x-4">
               <button
                 onClick={handleCancelConfirmation}
@@ -608,45 +631,63 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
         {/* Products List */}
         <div className="mb-6">
           <h3 className="text-lg font-medium mb-4">Products to Load</h3>
-          
+
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white border border-white">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="py-2 px-4 border-2 border-white text-left">Size</th>
-                  <th className="py-2 px-4 border-2 border-white text-left">Product Name</th>
-                  <th className="py-2 px-4 border-2 border-white text-center">Available</th>
-                  <th className="py-2 px-4 border-2 border-white text-center">Cases</th>
-                  <th className="py-2 px-4 border-2 border-white text-center">Bottles</th>
+                  <th className="py-2 px-4 border-2 border-white text-left">
+                    Size
+                  </th>
+                  <th className="py-2 px-4 border-2 border-white text-left">
+                    Product Name
+                  </th>
+                  <th className="py-2 px-4 border-2 border-white text-center">
+                    Available
+                  </th>
+                  <th className="py-2 px-4 border-2 border-white text-center">
+                    Cases
+                  </th>
+                  <th className="py-2 px-4 border-2 border-white text-center">
+                    Bottles
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {visibleProducts.length > 0 ? (
-                  sortedSizes.map((size) => (
+                  sortedSizes.map((size) =>
                     // For each size, render all products of that size
-                    groupedProducts[size].map((entry, index) => {
-                      const isFirstInSizeGroup = index === 0;
+                    groupedProducts[size].map((entry) => {
                       return (
-                        <tr 
+                        <tr
                           key={entry.product_id}
-                          className={`${sizeColors[size]} ${entry.validationError ? "bg-red-100" : ""}`}
+                          className={`${sizeColors[size]} ${
+                            entry.validationError ? "bg-red-100" : ""
+                          }`}
                         >
                           {/* product in each size group */}
                           <td className="py-1 px-4 border-2 border-white font-medium">
-                            { 
-                              <div className="font-medium">{size}</div>
-                            }
+                            {<div className="font-medium">{size}</div>}
                           </td>
-                          <td className="py-1 px-4 border-2 border-white">{entry.product_name}</td>
+                          <td className="py-1 px-4 border-2 border-white">
+                            {entry.product_name}
+                          </td>
                           <td className="py-1 px-4 border-2 border-white text-center">
-                            {entry.cases_available} cases, {entry.bottles_available} bottles
+                            {entry.cases_available} cases,{" "}
+                            {entry.bottles_available} bottles
                           </td>
                           <td className="py-1 px-4 border-2 border-white">
                             <input
                               type="number"
                               min="0"
                               value={entry.cases_loaded}
-                              onChange={(e) => handleQuantityChange(entry.product_id, "cases_loaded", e.target.value)}
+                              onChange={(e) =>
+                                handleQuantityChange(
+                                  entry.product_id,
+                                  "cases_loaded",
+                                  e.target.value
+                                )
+                              }
                               className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                             />
                           </td>
@@ -655,28 +696,37 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
                               type="number"
                               min="0"
                               value={entry.bottles_loaded}
-                              onChange={(e) => handleQuantityChange(entry.product_id, "bottles_loaded", e.target.value)}
+                              onChange={(e) =>
+                                handleQuantityChange(
+                                  entry.product_id,
+                                  "bottles_loaded",
+                                  e.target.value
+                                )
+                              }
                               className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                             />
                             {entry.validationError && (
-                              <p className="text-red-500 text-xs mt-1">{entry.validationError}</p>
+                              <p className="text-red-500 text-xs mt-1">
+                                {entry.validationError}
+                              </p>
                             )}
                           </td>
                         </tr>
                       );
                     })
-                  ))
+                  )
                 ) : (
                   <tr>
                     <td colSpan="5" className="py-4 text-center text-gray-500">
-                      No products match your search. Try a different search term.
+                      No products match your search. Try a different search
+                      term.
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-          
+
           <div className="mt-6 flex justify-end">
             <button
               type="submit"

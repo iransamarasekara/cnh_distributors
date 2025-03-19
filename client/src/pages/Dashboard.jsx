@@ -70,6 +70,14 @@ const Dashboard = () => {
     setEndDate(new Date());
   };
 
+  useEffect(() => {
+    // Set auth token for all axios requests
+    const token = localStorage.getItem("token");
+    if (token) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    }
+  }, []);
+
   // Fetch dashboard data using existing APIs
   useEffect(() => {
     const fetchDashboardData = async () => {

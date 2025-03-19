@@ -13,6 +13,7 @@ import InventoryReportsPage from "./pages/InventoryReportsPage";
 import ManagementPage from "./pages/ManagementPage";
 import DiscountPage from "./pages/DiscountManagementPage";
 import DiscountManagementPage from "./pages/DiscountManagementPage";
+import UnauthorizedPage from "./pages/UnauthorizedPage";
 
 const AppLayout = ({ children }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -47,52 +48,74 @@ const App = () => {
           <Route path="/login" element={<LoginPage />} />
 
           {/* Protected routes with layout */}
-          <Route element={<ProtectedRoute />}>
+          <Route>
+            <Route element={<ProtectedRoute requiredRoles={["admin"]} />}>
+              <Route
+                path="/dashboard"
+                element={
+                  <AppLayout>
+                    <Dashboard />
+                  </AppLayout>
+                }
+              />
+            </Route>
+            <Route element={<ProtectedRoute requiredRoles={["admin"]} />}>
+              <Route
+                path="/inventory-management"
+                element={
+                  <AppLayout>
+                    <InventoryManagementPage />
+                  </AppLayout>
+                }
+              />
+            </Route>
             <Route
-              path="/dashboard"
+              element={<ProtectedRoute requiredRoles={["admin", "loader"]} />}
+            >
+              <Route
+                path="/loading-management"
+                element={
+                  <AppLayout>
+                    <LoadingManagementPage />
+                  </AppLayout>
+                }
+              />
+            </Route>
+            <Route element={<ProtectedRoute requiredRoles={["admin"]} />}>
+              <Route
+                path="/discounts"
+                element={
+                  <AppLayout>
+                    <DiscountManagementPage />
+                  </AppLayout>
+                }
+              />
+            </Route>
+            <Route element={<ProtectedRoute requiredRoles={["admin"]} />}>
+              <Route
+                path="/reports"
+                element={
+                  <AppLayout>
+                    <InventoryReportsPage />
+                  </AppLayout>
+                }
+              />
+            </Route>
+            <Route element={<ProtectedRoute requiredRoles={["admin"]} />}>
+              <Route
+                path="/manage"
+                element={
+                  <AppLayout>
+                    <ManagementPage />
+                  </AppLayout>
+                }
+              />
+            </Route>
+            <Route
+              path="/unauthorized"
               element={
                 <AppLayout>
-                  <Dashboard />
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/inventory-management"
-              element={
-                <AppLayout>
-                  <InventoryManagementPage />
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/loading-management"
-              element={
-                <AppLayout>
-                  <LoadingManagementPage />
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/discounts"
-              element={
-                <AppLayout>
-                  <DiscountManagementPage />
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/reports"
-              element={
-                <AppLayout>
-                  <InventoryReportsPage />
-                </AppLayout>
-              }
-            />
-            <Route
-              path="/manage"
-              element={
-                <AppLayout>
-                  <ManagementPage />
+                  <UnauthorizedPage />
                 </AppLayout>
               }
             />
