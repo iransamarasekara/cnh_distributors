@@ -138,8 +138,8 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                 product_id: detail.product.product_id,
                 product_name: detail.product.product_name,
                 product_size: detail.product.size,
-                cases_returned: 0,
-                bottles_returned: 0,
+                cases_returned: null,
+                bottles_returned: null,
                 cases_loaded: detail.cases_loaded,
                 bottles_loaded: detail.bottles_loaded,
               })
@@ -521,7 +521,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
 
         {/* Unloading Items */}
         <div className="mb-6">
-          <h3 className="text-lg font-medium mb-4">Returned Products</h3>
+          <h3 className="text-lg font-medium mb-4">Unloaded Products</h3>
 
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white border border-white">
@@ -540,10 +540,10 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                     Bottles Loaded
                   </th>
                   <th className="py-2 px-4 border-2 border-white text-center">
-                    Cases Returned
+                    Cases Unloaded
                   </th>
                   <th className="py-2 px-4 border-2 border-white text-center">
-                    Bottles Returned
+                    Bottles Unloaded
                   </th>
                 </tr>
               </thead>
@@ -578,6 +578,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                               e.target.value
                             )
                           }
+                          onWheel={(e) => e.target.blur()} // Prevent scrolling from changing values
                           className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                           disabled={noActiveLoading}
                         />
@@ -594,6 +595,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                               e.target.value
                             )
                           }
+                          onWheel={(e) => e.target.blur()} // Prevent scrolling from changing values
                           className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                           disabled={noActiveLoading}
                         />

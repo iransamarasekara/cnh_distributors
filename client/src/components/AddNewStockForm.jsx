@@ -312,6 +312,7 @@ const AddNewStockForm = ({ onInventoryAdded }) => {
                 name="size"
                 value={selectedSize}
                 onChange={handleSizeChange}
+                onWheel={(e) => e.target.blur()} // Disable mouse wheel scrolling
                 className="appearance-none block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 disabled={
                   isLoading ||
@@ -390,6 +391,7 @@ const AddNewStockForm = ({ onInventoryAdded }) => {
                   min="0"
                   value={formData.cases_qty}
                   onChange={handleQuantityChange}
+                  onWheel={(e) => e.target.blur()}
                   className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   disabled={isLoading}
                 />
@@ -410,6 +412,7 @@ const AddNewStockForm = ({ onInventoryAdded }) => {
                   min="0"
                   value={formData.bottles_qty}
                   onChange={handleQuantityChange}
+                  onWheel={(e) => e.target.blur()}
                   className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   disabled={isLoading}
                 />
