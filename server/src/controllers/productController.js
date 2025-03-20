@@ -74,16 +74,16 @@ exports.getAllProducts = async (req, res) => {
     if (sortBy === "Size") {
       const sizeOrder = {
         "175 mL": 1,
-        "250 mL": 2,
-        "300 mL": 3,
-        "355 mL": 4,
+        "250 mL": 4,
+        "300 mL": 2,
+        "355 mL": 9,
         "400 mL": 5,
-        "500 mL": 6,
-        "750 mL": 7,
-        "1 L": 8,
-        "1050 mL": 9,
-        "1.5 L": 10,
-        "2 L": 11,
+        "500 mL": 10,
+        "750 mL": 3,
+        "1 L": 11,
+        "1050 mL": 6,
+        "1.5 L": 7,
+        "2 L": 8,
       };
 
       transformedProducts.sort((a, b) => {

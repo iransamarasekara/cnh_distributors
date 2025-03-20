@@ -11,6 +11,9 @@ const loadingDetailRoutes = require("./loadingDetailRoutes");
 const unloadingDetailRoutes = require("./unloadingDetailRoutes");
 const dailySalesRoutes = require("./dailySalesRoutes");
 const stockInventoryRoutes = require("./stockInventoryRoutes");
+const { verifyToken, authorize } = require("../middleware/authMiddleware");
+
+const adminOnly = authorize("admin");
 
 // Use the imported routes
 router.use("/auth", authRoutes);
@@ -20,7 +23,7 @@ router.use("/loading-transactions", loadingTransactionRoutes);
 router.use("/unloading-transactions", unloadingTransactionRoutes);
 router.use("/loading-details", loadingDetailRoutes);
 router.use("/unloading-details", unloadingDetailRoutes);
-router.use("/daily-sales", dailySalesRoutes);
+router.use("/daily-sales", verifyToken, adminOnly, dailySalesRoutes);
 router.use("/stock-inventory", stockInventoryRoutes);
 
 module.exports = router;

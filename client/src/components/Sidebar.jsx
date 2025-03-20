@@ -4,6 +4,7 @@ import {
   Squares2X2Icon,
   CubeIcon,
   TruckIcon,
+  PercentBadgeIcon,
   DocumentChartBarIcon,
   UserGroupIcon,
   QuestionMarkCircleIcon,
@@ -37,6 +38,11 @@ const Sidebar = () => {
       label: "Loading",
       hasDropdown: false,
       url: "/loading-management",
+    },
+    {
+      icon: <PercentBadgeIcon className="w-5 h-5" />,
+      label: "Discounts",
+      url: "/discounts",
     },
     {
       icon: <DocumentChartBarIcon className="w-5 h-5" />,
