@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import {
@@ -20,10 +20,22 @@ import {
   DollarSign,
   Award,
 } from "lucide-react";
+import { AuthContext } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const Dashboard = () => {
+  const { currentUser } = useContext(AuthContext);
+  const isAdmin = currentUser?.role === "admin";
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAdmin) {
+      console.log("User is not an admin. Redirecting...");
+      navigate("/loading-management");
+    }
+  }, [isAdmin, navigate]);
   // Date range state
   const [startDate, setStartDate] = useState(
     new Date(new Date().setDate(new Date().getDate() - 30))
@@ -343,7 +355,9 @@ const Dashboard = () => {
                 <div className="bg-gradient-to-br from-teal-100 to-teal-200 p-5 rounded-xl shadow-sm border border-teal-200">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-gray-700 font-medium">Total Sale Income</p>
+                      <p className="text-gray-700 font-medium">
+                        Total Sale Income
+                      </p>
                       <p className="text-3xl font-bold mt-2">
                         {formatCurrency(overviewMetrics.saleIncome).replace(
                           "LKR",
@@ -361,7 +375,9 @@ const Dashboard = () => {
                 <div className="bg-gradient-to-br from-green-100 to-green-200 p-5 rounded-xl shadow-sm border border-green-200">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-gray-700 font-medium">Total Sale Profit</p>
+                      <p className="text-gray-700 font-medium">
+                        Total Sale Profit
+                      </p>
                       <p className="text-3xl font-bold mt-2">
                         {formatCurrency(overviewMetrics.grossProfit).replace(
                           "LKR",

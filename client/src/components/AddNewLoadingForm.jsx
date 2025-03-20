@@ -31,15 +31,17 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
 
   // Custom size order mapping
   const sizeOrderMap = {
-    "175mL": 1,
-    "300mL": 2,
-    "750mL": 3,
-    "250mL": 4,
-    "400mL": 5,
-    "1L": 6,
-    "1050mL": 7,
-    "1.5L": 8,
-    "2L": 9,
+    "175 mL": 1,
+    "250 mL": 4,
+    "300 mL": 2,
+    "355 mL": 9,
+    "400 mL": 5,
+    "500 mL": 10,
+    "750 mL": 3,
+    "1 L": 11,
+    "1050 mL": 6,
+    "1.5 L": 7,
+    "2 L": 8,
   };
 
   // Helper function to get order value based on custom size order
