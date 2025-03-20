@@ -116,16 +116,16 @@ const InventoryHistory = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50 sticky top-0">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     ID
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Product Name
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     SIZE
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Action
                   </th>
                 </tr>
@@ -140,16 +140,16 @@ const InventoryHistory = () => {
                         : ""
                     }`}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-1 whitespace-nowrap text-sm text-gray-500">
                       {product.product_id}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-6 py-1 whitespace-nowrap text-sm font-medium text-gray-900">
                       {product.product_name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-1 whitespace-nowrap text-sm text-gray-500">
                       {product.size || "-"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <td className="px-6 py-2 whitespace-nowrap text-sm">
                       <button
                         onClick={() => handleProductSelect(product.product_id)}
                         className="text-blue-600 hover:text-blue-900 font-medium"
@@ -247,25 +247,25 @@ const InventoryHistory = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Type
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Cases
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Bottles
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Total Bottles
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Value
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Notes
                   </th>
                 </tr>
@@ -276,12 +276,12 @@ const InventoryHistory = () => {
                     key={transaction.transaction_id}
                     className="hover:bg-gray-50"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-1 whitespace-nowrap text-sm text-gray-500">
                       {formatDate(transaction.transaction_date)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-1 whitespace-nowrap">
                       <span
-                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        className={`px-2 py-1 inline-flex text-xs leading-1 font-medium rounded-full ${
                           transaction.transaction_type === "ADD"
                             ? "bg-green-100 text-green-800"
                             : transaction.transaction_type === "REMOVE"
@@ -292,16 +292,16 @@ const InventoryHistory = () => {
                         {transaction.transaction_type}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-500">
                       {transaction.cases_qty}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-500">
                       {transaction.bottles_qty}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-500">
                       {transaction.total_bottles}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-500">
                       Rs.{" "}
                       {parseFloat(transaction.total_value).toLocaleString(
                         undefined,
@@ -311,7 +311,7 @@ const InventoryHistory = () => {
                         }
                       )}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 max-w-md truncate">
+                    <td className="px-6 py-2 text-sm text-gray-500 max-w-md truncate">
                       {transaction.notes || "-"}
                     </td>
                   </tr>
@@ -319,7 +319,7 @@ const InventoryHistory = () => {
               </tbody>
               <tfoot className="bg-gray-50">
                 <tr>
-                  <td colSpan="7" className="px-6 py-3 text-sm text-gray-500">
+                  <td colSpan="7" className="px-6 py-2 text-sm text-gray-500">
                     {transactions.length} transaction
                     {transactions.length !== 1 ? "s" : ""} found
                   </td>
