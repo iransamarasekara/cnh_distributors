@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import {
@@ -20,10 +20,22 @@ import {
   DollarSign,
   Award,
 } from "lucide-react";
+import { AuthContext } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const Dashboard = () => {
+  const { currentUser } = useContext(AuthContext);
+  const isAdmin = currentUser?.role === "admin";
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAdmin) {
+      console.log("User is not an admin. Redirecting...");
+      navigate("/loading-management");
+    }
+  }, [isAdmin, navigate]);
   // Date range state
   const [startDate, setStartDate] = useState(
     new Date(new Date().setDate(new Date().getDate() - 30))
@@ -69,6 +81,14 @@ const Dashboard = () => {
     setStartDate(new Date(new Date().setDate(new Date().getDate() - 30)));
     setEndDate(new Date());
   };
+
+  useEffect(() => {
+    // Set auth token for all axios requests
+    const token = localStorage.getItem("token");
+    if (token) {
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    }
+  }, []);
 
   // Fetch dashboard data using existing APIs
   useEffect(() => {
@@ -335,7 +355,9 @@ const Dashboard = () => {
                 <div className="bg-gradient-to-br from-teal-100 to-teal-200 p-5 rounded-xl shadow-sm border border-teal-200">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-gray-700 font-medium">Total Revenue</p>
+                      <p className="text-gray-700 font-medium">
+                        Total Sale Income
+                      </p>
                       <p className="text-3xl font-bold mt-2">
                         {formatCurrency(overviewMetrics.saleIncome).replace(
                           "LKR",
@@ -353,7 +375,9 @@ const Dashboard = () => {
                 <div className="bg-gradient-to-br from-green-100 to-green-200 p-5 rounded-xl shadow-sm border border-green-200">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-gray-700 font-medium">Gross Profit</p>
+                      <p className="text-gray-700 font-medium">
+                        Total Sale Profit
+                      </p>
                       <p className="text-3xl font-bold mt-2">
                         {formatCurrency(overviewMetrics.grossProfit).replace(
                           "LKR",
@@ -474,7 +498,7 @@ const Dashboard = () => {
           <div className="flex justify-between items-center mb-5">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
               <TrendingUp size={20} className="text-indigo-500" />
-              Revenue & Profit Analysis
+              Sale Income & Profit Analysis
             </h2>
           </div>
 
@@ -507,7 +531,7 @@ const Dashboard = () => {
                   <Line
                     type="monotone"
                     dataKey="income"
-                    name="Revenue"
+                    name="Sale Income"
                     stroke="#4f46e5"
                     strokeWidth={3}
                     dot={{ r: 4, fill: "#4f46e5" }}
@@ -516,7 +540,7 @@ const Dashboard = () => {
                   <Line
                     type="monotone"
                     dataKey="profit"
-                    name="Profit"
+                    name="Sale Profit"
                     stroke="#10b981"
                     strokeWidth={3}
                     dot={{ r: 4, fill: "#10b981" }}

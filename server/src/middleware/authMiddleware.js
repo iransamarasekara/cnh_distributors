@@ -23,20 +23,24 @@ exports.verifyToken = (req, res, next) => {
 
 // For role-based authorization (optional enhancement)
 exports.authorize = (roles = []) => {
-  // roles param can be a single role string (e.g., 'admin') or an array (e.g., ['admin', 'manager'])
   if (typeof roles === "string") {
     roles = [roles];
   }
 
   return (req, res, next) => {
+    // Check if user exists first
+    if (!req.user) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized: Authentication required" });
+    }
+
     if (roles.length && !roles.includes(req.user.role)) {
-      // User's role is not authorized
       return res
         .status(403)
         .json({ message: "Forbidden: insufficient permissions" });
     }
 
-    // Authentication and authorization successful
     next();
   };
 };

@@ -65,16 +65,16 @@ const AddNewStockForm = ({ onInventoryAdded }) => {
       // Define the custom size order
       const sizeOrder = {
         "175 mL": 1,
-        "250 mL": 2,
-        "300 mL": 3,
-        "355 mL": 4,
+        "250 mL": 4,
+        "300 mL": 2,
+        "355 mL": 9,
         "400 mL": 5,
-        "500 mL": 6,
-        "750 mL": 7,
-        "1 L": 8,
-        "1050 mL": 9,
-        "1.5 L": 10,
-        "2 L": 11,
+        "500 mL": 10,
+        "750 mL": 3,
+        "1 L": 11,
+        "1050 mL": 6,
+        "1.5 L": 7,
+        "2 L": 8,
       };
 
       // Extract unique sizes for this product name
@@ -312,6 +312,7 @@ const AddNewStockForm = ({ onInventoryAdded }) => {
                 name="size"
                 value={selectedSize}
                 onChange={handleSizeChange}
+                onWheel={(e) => e.target.blur()} // Disable mouse wheel scrolling
                 className="appearance-none block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 disabled={
                   isLoading ||
@@ -390,6 +391,7 @@ const AddNewStockForm = ({ onInventoryAdded }) => {
                   min="0"
                   value={formData.cases_qty}
                   onChange={handleQuantityChange}
+                  onWheel={(e) => e.target.blur()}
                   className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   disabled={isLoading}
                 />
@@ -410,6 +412,7 @@ const AddNewStockForm = ({ onInventoryAdded }) => {
                   min="0"
                   value={formData.bottles_qty}
                   onChange={handleQuantityChange}
+                  onWheel={(e) => e.target.blur()}
                   className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   disabled={isLoading}
                 />
