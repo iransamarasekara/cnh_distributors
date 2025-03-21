@@ -54,6 +54,22 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
+      empty_cases_qty: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      empty_bottles_qty: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      expired_bottles_qty: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      expired_bottle_value: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+      },
       value: {
         type: DataTypes.FLOAT,
         allowNull: false,

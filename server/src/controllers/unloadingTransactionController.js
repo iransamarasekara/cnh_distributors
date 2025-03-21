@@ -102,6 +102,11 @@ exports.createUnloadingTransaction = async (req, res) => {
               total_bottles: totalBottles,
               total_value: totalBottles * valuePerBottle,
               last_updated: new Date(),
+              empty_cases_qty: detail.empty_cases_qty || 0,
+              empty_bottles_qty: detail.empty_bottles_qty || 0,
+              expired_bottles_qty: detail.expired_bottles_qty || 0,
+              total_expired_bottles_value:
+                detail.expired_bottles_qty * detail.expired_bottle_value || 0,
             },
             { transaction: dbTransaction }
           );
@@ -177,6 +182,10 @@ exports.createUnloadingTransaction = async (req, res) => {
             bottles_returned: detail.bottles_returned,
             total_bottles_returned: totalBottlesReturned,
             value: totalBottlesReturned * valuePerBottle,
+            empty_cases_qty: detail.empty_cases_qty || 0,
+            empty_bottles_qty: detail.empty_bottles_qty || 0,
+            expired_bottles_qty: detail.expired_bottles_qty || 0,
+            expired_bottle_value: detail.expired_bottle_value || 0,
           },
           { transaction: dbTransaction }
         );
