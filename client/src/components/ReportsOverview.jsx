@@ -6,7 +6,6 @@ const ReportsOverview = ({
   loadingTransactions,
   unloadingTransactions,
   salesData,
-  totalGrossProfit,
   expiryReturns,
   stockData,
   dateRange,
@@ -689,7 +688,7 @@ const ReportsOverview = ({
                 </td>
               </tr>
             )}
-            {consolidatedData.length > 0 && (
+            {/* {consolidatedData.length > 0 && (
               <tr className="bg-blue-50 font-bold">
                 <td
                   colSpan={12 + lorryIds.length * 4}
@@ -704,7 +703,7 @@ const ReportsOverview = ({
                   })}
                 </td>
               </tr>
-            )}
+            )} */}
           </tbody>
         </table>
       </div>

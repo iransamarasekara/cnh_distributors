@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { format, set } from "date-fns";
+import { format } from "date-fns";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -136,7 +136,7 @@ const ExpiryReturnsForm = ({ selectedLorry }) => {
       return;
     }
 
-    const productDetail = products.find((p) => p.product_id === productId);
+    // const productDetail = products.find((p) => p.product_id === productId);
 
     const newItem = {
       product_id: productId,
@@ -193,7 +193,7 @@ const ExpiryReturnsForm = ({ selectedLorry }) => {
         expiryReturnsDetails,
       };
 
-      const response = await axios.post(`${API_URL}/expiry-returns`, payload);
+      await axios.post(`${API_URL}/expiry-returns`, payload);
 
       setSuccessMessage("Expiry return created successfully!");
 

@@ -144,7 +144,7 @@ const EmptyReturnsForm = ({ selectedLorry }) => {
       return;
     }
 
-    const productDetail = products.find((p) => p.product_id === productId);
+    // const productDetail = products.find((p) => p.product_id === productId);
 
     const newItem = {
       product_id: productId,
@@ -205,7 +205,7 @@ const EmptyReturnsForm = ({ selectedLorry }) => {
         details,
       };
 
-      const response = await axios.post(`${API_URL}/empty-returns`, payload);
+      await axios.post(`${API_URL}/empty-returns`, payload);
 
       setSuccessMessage("Empty return created successfully!");
 
