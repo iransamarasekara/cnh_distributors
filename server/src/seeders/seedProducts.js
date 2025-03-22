@@ -106,6 +106,14 @@ const seedProducts = async () => {
           active: true,
         },
         
+        {
+          product_name: "Kinley Club Soda",
+          unit_price: 92,
+          selling_price: 100,
+          bottles_per_case: 24,
+          size: "300 mL",
+          active: true,
+        },
         // 750 mL (RGB) products
         {
           product_name: "Coca Cola",
@@ -242,6 +250,15 @@ const seedProducts = async () => {
         },
         {
           product_name: "Lion Club Soda",
+          unit_price: 92,
+          selling_price: 100,
+          bottles_per_case: 24,
+          size: "400 mL",
+          active: true,
+        },
+
+        {
+          product_name: "Kinley Club Soda",
           unit_price: 100,
           selling_price: 93,
           bottles_per_case: 24,
@@ -314,6 +331,14 @@ const seedProducts = async () => {
           size: "1050 mL",
           active: true,
         },
+        {
+          product_name: "Kinley Club Soda",
+          unit_price: 167,
+          selling_price: 180,
+          bottles_per_case: 12,
+          size: "1050 mL",
+          active: true,
+        },
         
         // 1.5L products
         {
@@ -360,6 +385,14 @@ const seedProducts = async () => {
           product_name: "Lion Club Soda",
           unit_price: 218.55,
           selling_price: 232.5,
+          bottles_per_case: 12,
+          size: "1.5 L",
+          active: true,
+        },
+        {
+          product_name: " Kinley Club Soda",
+          unit_price: 232.5,
+          selling_price: 250,
           bottles_per_case: 12,
           size: "1.5 L",
           active: true,
