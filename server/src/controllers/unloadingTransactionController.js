@@ -62,8 +62,127 @@ exports.createUnloadingTransaction = async (req, res) => {
     let newUnloadingDetails = [];
 
     if (unloadingDetails && unloadingDetails.length > 0) {
-      // Process each product being unloaded
+      // Check if an empty return record already exists for this date and lorry
+      let emptyReturn = await db.EmptyReturn.findOne({
+        where: {
+          lorry_id: lorry_id,
+          return_date: unloading_date,
+        },
+        transaction: dbTransaction,
+      });
+
+      // Check if an expiry return record already exists for this date and lorry
+      let expiryReturn = await db.ExpiryReturn.findOne({
+        where: {
+          lorry_id: lorry_id,
+          return_date: unloading_date,
+        },
+        transaction: dbTransaction,
+      });
+
+      // If no empty return record exists, create a new one
+      if (!emptyReturn) {
+        emptyReturn = await db.EmptyReturn.create(
+          {
+            lorry_id,
+            return_date: unloading_date,
+          },
+          { transaction: dbTransaction }
+        );
+      }
+
+      // If no expiry return record exists, create a new one
+      if (!expiryReturn) {
+        expiryReturn = await db.ExpiryReturn.create(
+          {
+            lorry_id,
+            return_date: unloading_date,
+          },
+          { transaction: dbTransaction }
+        );
+      }
+
+      // Process each product's empty and expiry returns
       for (const detail of unloadingDetails) {
+        // Handle empty returns details
+        if (detail.empty_bottles_qty > 0 || detail.empty_cases_qty > 0) {
+          // Check if a detail record already exists for this product
+          const existingEmptyDetail = await db.EmptyReturnsDetail.findOne({
+            where: {
+              empty_return_id: emptyReturn.empty_return_id,
+              product_id: detail.product_id,
+            },
+            transaction: dbTransaction,
+          });
+
+          if (existingEmptyDetail) {
+            // Update existing record
+            await existingEmptyDetail.update(
+              {
+                empty_bottles_returned:
+                  existingEmptyDetail.empty_bottles_returned +
+                  (detail.empty_bottles_qty || 0),
+                empty_cases_returned:
+                  existingEmptyDetail.empty_cases_returned +
+                  (detail.empty_cases_qty || 0),
+              },
+              { transaction: dbTransaction }
+            );
+          } else {
+            // Create new record
+            await db.EmptyReturnsDetail.create(
+              {
+                empty_return_id: emptyReturn.empty_return_id,
+                product_id: detail.product_id,
+                empty_bottles_returned: detail.empty_bottles_qty || 0,
+                empty_cases_returned: detail.empty_cases_qty || 0,
+              },
+              { transaction: dbTransaction }
+            );
+          }
+        }
+
+        // Handle expiry returns details
+        if (
+          detail.expired_bottles_qty > 0 ||
+          detail.expired_bottles_value > 0
+        ) {
+          // Check if a detail record already exists for this product
+          const existingExpiryDetail = await db.ExpiryReturnsDetail.findOne({
+            where: {
+              expiry_return_id: expiryReturn.expiry_return_id,
+              product_id: detail.product_id,
+            },
+            transaction: dbTransaction,
+          });
+
+          if (existingExpiryDetail) {
+            // Update existing record
+            await existingExpiryDetail.update(
+              {
+                bottles_expired:
+                  existingExpiryDetail.bottles_expired +
+                  (detail.expired_bottles_qty || 0),
+                expiry_value:
+                  existingExpiryDetail.expiry_value +
+                  (detail.expired_bottles_value || 0),
+              },
+              { transaction: dbTransaction }
+            );
+          } else {
+            // Create new record
+            await db.ExpiryReturnsDetail.create(
+              {
+                expiry_return_id: expiryReturn.expiry_return_id,
+                product_id: detail.product_id,
+                bottles_expired: detail.expired_bottles_qty || 0,
+                expiry_value: detail.expired_bottles_value || 0,
+              },
+              { transaction: dbTransaction }
+            );
+          }
+        }
+
         // Find current inventory for this product
         const stockInventory = await StockInventory.findOne({
           where: { product_id: detail.product_id },
@@ -482,9 +601,46 @@ async function createDailySalesFromUnloading(
       (sum, item) => sum + item.sales_income,
       0
     );
-    const totalGrossProfit = salesItems.reduce(
+    let totalGrossProfit = salesItems.reduce(
       (sum, item) => sum + item.gross_profit,
       0
+    );
+
+    // Find and sum up all expiry values for this date and lorry
+    const expiryReturn = await db.ExpiryReturn.findOne({
+      where: {
+        lorry_id: lorryId,
+        return_date: unloadingDate,
+      },
+      transaction,
+    });
+
+    let totalExpiryValue = 0;
+    if (expiryReturn) {
+      // Get all expiry details for this return
+      const expiryDetails = await db.ExpiryReturnsDetail.findAll({
+        where: {
+          expiry_return_id: expiryReturn.expiry_return_id,
+        },
+        transaction,
+      });
+
+      // Sum up all expiry values
+      totalExpiryValue = expiryDetails.reduce(
+        (sum, detail) => sum + (detail.expiry_value || 0),
+        0
+      );
+
+      console.log(
+        `Total expiry value for ${unloadingDate}: ${totalExpiryValue}`
+      );
+    }
+
+    // Reduce gross profit by the total expiry value
+    totalGrossProfit -= totalExpiryValue;
+
+    console.log(
+      `Final gross profit after deducting expiry value: ${totalGrossProfit}`
     );
 
     // Create or replace the daily sales record

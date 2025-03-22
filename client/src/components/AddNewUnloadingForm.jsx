@@ -21,6 +21,10 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
       bottles_returned: 0,
       cases_loaded: 0,
       bottles_loaded: 0,
+      expired_bottles_qty: 0,
+      expired_bottles_value: 0,
+      empty_bottles_qty: 0,
+      empty_cases_qty: 0,
     },
   ]);
 
@@ -103,6 +107,26 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
     }
   }, [formData.lorry_id]);
 
+  // Initialize unloading items with all products when products are loaded
+  useEffect(() => {
+    if (products.length > 0) {
+      const initialItems = products.map((product) => ({
+        product_id: product.product_id,
+        product_name: product.product_name,
+        product_size: product.size,
+        cases_returned: 0,
+        bottles_returned: 0,
+        cases_loaded: 0,
+        bottles_loaded: 0,
+        expired_bottles_qty: 0,
+        expired_bottles_value: 0,
+        empty_bottles_qty: 0,
+        empty_cases_qty: 0,
+      }));
+      setUnloadingItems(initialItems);
+    }
+  }, [products]);
+
   // Fetch last loading transaction for the selected lorry
   const fetchLastLoadingData = async (lorryId) => {
     try {
@@ -121,37 +145,34 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
         // Check if the last loading transaction is already unloaded
         if (response.data[0].status === "Unloaded") {
           setNoActiveLoading(true);
-          // Reset unloading items
-          setUnloadingItems([
-            {
-              product_id: "",
-              product_name: "",
-              product_size: "",
-              cases_returned: 0,
-              bottles_returned: 0,
-              cases_loaded: 0,
-              bottles_loaded: 0,
-            },
-          ]);
         } else {
-          // Populate unloading items with last loading data
+          // Update the loaded quantities in our full product list
           if (
             response.data[0].loadingDetails &&
             response.data[0].loadingDetails.length > 0
           ) {
-            const loadedItems = response.data[0].loadingDetails.map(
-              (detail) => ({
-                product_id: detail.product.product_id,
-                product_name: detail.product.product_name,
-                product_size: detail.product.size,
-                cases_returned: 0,
-                bottles_returned: 0,
+            const loadedItems = response.data[0].loadingDetails;
+
+            // Create a map of loaded quantities
+            const loadedMap = {};
+            loadedItems.forEach((detail) => {
+              loadedMap[detail.product.product_id] = {
                 cases_loaded: detail.cases_loaded,
                 bottles_loaded: detail.bottles_loaded,
+              };
+            });
+
+            // Update our unloading items with the loaded quantities
+            setUnloadingItems((prevItems) =>
+              prevItems.map((item) => {
+                const loadedInfo = loadedMap[item.product_id];
+                return {
+                  ...item,
+                  cases_loaded: loadedInfo ? loadedInfo.cases_loaded : 0,
+                  bottles_loaded: loadedInfo ? loadedInfo.bottles_loaded : 0,
+                };
               })
             );
-
-            setUnloadingItems(loadedItems);
           }
         }
       } else {
@@ -181,11 +202,16 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
 
     const invalidItems = unloadingItems.filter(
       (item) =>
-        !item.product_id || item.cases_returned < 0 || item.bottles_returned < 0
+        item.cases_returned < 0 ||
+        item.bottles_returned < 0 ||
+        item.expired_bottles_qty < 0 ||
+        item.expired_bottles_value < 0 ||
+        item.empty_bottles_qty < 0 ||
+        item.empty_cases_qty < 0
     );
 
     if (invalidItems.length > 0) {
-      setError("Please fill in all product details with valid quantities");
+      setError("Please enter valid quantities (zero or positive numbers)");
       return;
     }
 
@@ -212,11 +238,23 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
       const unloadingData = {
         ...formData,
         unloadingDetails: unloadingItems
-          .filter((item) => item.product_id)
+          .filter(
+            (item) =>
+              item.product_id &&
+              (item.cases_returned > 0 ||
+                item.bottles_returned > 0 ||
+                item.expired_bottles_qty > 0 ||
+                item.empty_bottles_qty > 0 ||
+                item.empty_cases_qty > 0)
+          )
           .map((item) => ({
             product_id: item.product_id,
             cases_returned: parseInt(item.cases_returned),
             bottles_returned: parseInt(item.bottles_returned),
+            expired_bottles_qty: parseInt(item.expired_bottles_qty),
+            expired_bottles_value: parseFloat(item.expired_bottles_value),
+            empty_bottles_qty: parseInt(item.empty_bottles_qty),
+            empty_cases_qty: parseInt(item.empty_cases_qty),
           })),
       };
 
@@ -235,17 +273,21 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
         status: "Completed",
       });
 
-      setUnloadingItems([
-        {
-          product_id: "",
-          product_name: "",
-          product_size: "",
-          cases_returned: 0,
-          bottles_returned: 0,
-          cases_loaded: 0,
-          bottles_loaded: 0,
-        },
-      ]);
+      // Reset products to initial state
+      const initialItems = products.map((product) => ({
+        product_id: product.product_id,
+        product_name: product.product_name,
+        product_size: product.size,
+        cases_returned: 0,
+        bottles_returned: 0,
+        cases_loaded: 0,
+        bottles_loaded: 0,
+        expired_bottles_qty: 0,
+        expired_bottles_value: 0,
+        empty_bottles_qty: 0,
+        empty_cases_qty: 0,
+      }));
+      setUnloadingItems(initialItems);
 
       setLastLoadingData(null);
       setNoActiveLoading(false);
@@ -283,7 +325,6 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
   };
 
   // Add another unloading item (removed since products can't be added manually anymore)
-
   return (
     <div className="p-6">
       <h2 className="text-xl font-semibold mb-6">Add New Unloading</h2>
@@ -344,17 +385,37 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                       <th className="py-2 px-4 border-white border-2 text-center">
                         Bottles Returned
                       </th>
+                      <th className="py-2 px-4 border text-center">
+                        Expired Bottles
+                      </th>
+                      <th className="py-2 px-4 border text-center">
+                        Expired Value
+                      </th>
+                      <th className="py-2 px-4 border text-center">
+                        Empty Bottles
+                      </th>
+                      <th className="py-2 px-4 border text-center">
+                        Empty Cases
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {unloadingItems
-                      .filter((item) => item.product_id)
-                      .map((item, index) => (
-                        <tr
-                          key={`${item.product_id}-${index}`}
-                          className={sizeColorMap[item.product_size]}
-                        >
-                          <td className="py-1 px-4 border-white border-2 font-medium">
+                      .filter(
+                        (item) =>
+                          item.product_id &&
+                          (item.cases_returned > 0 ||
+                            item.bottles_returned > 0 ||
+                            item.expired_bottles_qty > 0 ||
+                            item.empty_bottles_qty > 0 ||
+                            item.empty_cases_qty > 0)
+                      )
+                      .map((item) => (
+                        <tr key={item.product_id}>
+                          <td className="py-1 px-4 border">
+                            {item.product_name}
+                          </td>
+                          <td className="py-1 px-4 border">
                             {item.product_size}
                           </td>
                           <td className="py-1 px-4 border-white border-2 ">
@@ -372,6 +433,18 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                           </td>
                           <td className="py-1 px-4 border-white border-2 text-center">
                             {item.bottles_returned}
+                          </td>
+                          <td className="py-1 px-4 border text-center">
+                            {item.expired_bottles_qty}
+                          </td>
+                          <td className="py-1 px-4 border text-center">
+                            {item.expired_bottles_value}
+                          </td>
+                          <td className="py-1 px-4 border text-center">
+                            {item.empty_bottles_qty}
+                          </td>
+                          <td className="py-1 px-4 border text-center">
+                            {item.empty_cases_qty}
                           </td>
                         </tr>
                       ))}
@@ -550,15 +623,156 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                     Bottles Loaded
                   </th>
                   <th className="py-2 px-4 border-2 border-white text-center">
-                    Cases Unloaded
+                    Cases Returned
                   </th>
                   <th className="py-2 px-4 border-2 border-white text-center">
-                    Bottles Unloaded
+                    Bottles Returned
+                  </th>
+                  <th className="py-2 px-4 border-2 border-white text-center">
+                    Expired Bottles
+                  </th>
+                  <th className="py-2 px-4 border-2 border-white text-center">
+                    Expired Value
+                  </th>
+                  <th className="py-2 px-4 border-2 border-white text-center">
+                    Empty Bottles
+                  </th>
+                  <th className="py-2 px-4 border-2 border-white text-center">
+                    Empty Cases
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {unloadingItems.length > 0 ? (
+                  unloadingItems.map((item, index) => (
+                    <tr
+                      key={index}
+                      className={index % 2 === 0 ? "bg-gray-50" : ""}
+                    >
+                      <td className="py-1 px-4 border-2 border-white">
+                        {item.product_size}
+                      </td>
+                      <td className="py-1 px-4 border-2 border-white">
+                        {item.product_name}
+                      </td>
+                      <td className="py-1 px-4 border-2 border-white text-center">
+                        <input
+                          type="number"
+                          value={item.cases_loaded || 0}
+                          className="shadow appearance-none border border-gray-200 bg-gray-100 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          disabled
+                        />
+                      </td>
+                      <td className="py-1 px-4 border-2 border-white text-center">
+                        <input
+                          type="number"
+                          value={item.bottles_loaded || 0}
+                          className="shadow appearance-none border border-gray-200 bg-gray-100 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          disabled
+                        />
+                      </td>
+                      <td className="py-1 px-4 border-2 border-white">
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.cases_returned}
+                          onChange={(e) =>
+                            handleUnloadingItemChange(
+                              index,
+                              "cases_returned",
+                              e.target.value
+                            )
+                          }
+                          className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          disabled={noActiveLoading}
+                        />
+                      </td>
+                      <td className="py-1 px-4 border-2 border-white">
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.bottles_returned}
+                          onChange={(e) =>
+                            handleUnloadingItemChange(
+                              index,
+                              "bottles_returned",
+                              e.target.value
+                            )
+                          }
+                          className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          disabled={noActiveLoading}
+                        />
+                      </td>
+                      <td className="py-1 px-4 border-2 border-white">
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.expired_bottles_qty}
+                          onChange={(e) =>
+                            handleUnloadingItemChange(
+                              index,
+                              "expired_bottles_qty",
+                              e.target.value
+                            )
+                          }
+                          className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          disabled={noActiveLoading}
+                        />
+                      </td>
+                      <td className="py-1 px-4 border-2 border-white">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.expired_bottles_value}
+                          onChange={(e) =>
+                            handleUnloadingItemChange(
+                              index,
+                              "expired_bottles_value",
+                              e.target.value
+                            )
+                          }
+                          className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          disabled={noActiveLoading}
+                        />
+                      </td>
+                      <td className="py-1 px-4 border-2 border-white">
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.empty_bottles_qty}
+                          onChange={(e) =>
+                            handleUnloadingItemChange(
+                              index,
+                              "empty_bottles_qty",
+                              e.target.value
+                            )
+                          }
+                          className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          disabled={noActiveLoading}
+                        />
+                      </td>
+                      <td className="py-1 px-4 border-2 border-white">
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.empty_cases_qty}
+                          onChange={(e) =>
+                            handleUnloadingItemChange(
+                              index,
+                              "empty_cases_qty",
+                              e.target.value
+                            )
+                          }
+                          className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          disabled={noActiveLoading}
+                        />
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="10" className="py-4 text-center text-gray-500">
                   unloadingItems
                     .filter((item) => item.product_id)
                     .map((item, index) => (
@@ -634,9 +848,6 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                 )}
               </tbody>
             </table>
-            <div className="mt-2 text-xs text-gray-500">
-              * Products are color-coded by size for easier identification
-            </div>
           </div>
 
           <div className="mt-6 flex justify-end">

@@ -23,6 +23,7 @@ const InventoryReportsPage = () => {
   const [loadingTransactions, setLoadingTransactions] = useState([]);
   const [unloadingTransactions, setUnloadingTransactions] = useState([]);
   const [salesData, setSalesData] = useState([]);
+  const [totalGrossProfit, setTotalGrossProfit] = useState(0);
   const [stockData, setStockData] = useState([]);
 
   const tabs = ["ReportsOverview", "LorryPerformance"];
@@ -69,7 +70,8 @@ const InventoryReportsPage = () => {
         setLorryData(lorriesRes.data);
         setLoadingTransactions(loadingRes.data);
         setUnloadingTransactions(unloadingRes.data);
-        setSalesData(salesRes.data);
+        setSalesData(salesRes.data.salesData);
+        setTotalGrossProfit(salesRes.data.totalGrossProfit);
         setStockData(stockRes.data);
       } catch (err) {
         setError("Failed to fetch data: " + err.message);
@@ -91,6 +93,7 @@ const InventoryReportsPage = () => {
       loadingTransactions,
       unloadingTransactions,
       salesData,
+      totalGrossProfit,
       stockData,
       isLoading,
       error,
