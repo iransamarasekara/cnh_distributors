@@ -6,6 +6,7 @@ const ReportsOverview = ({
   loadingTransactions,
   unloadingTransactions,
   salesData,
+  totalGrossProfit,
   stockData,
   dateRange,
 }) => {
@@ -650,6 +651,15 @@ const ReportsOverview = ({
           </tbody>
         </table>
       </div>
+      <p className="text-sm text-gray-600 mt-2 mr-4 text-right">
+        Total Gross Profit with Expiry and Breakage:{" "}
+        <span className="font-bold">
+          {totalGrossProfit.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </span>
+      </p>
       <div className="mt-4 flex justify-end">
         <button
           onClick={downloadCSV}

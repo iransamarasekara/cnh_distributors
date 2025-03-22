@@ -2,36 +2,36 @@
 const { Model } = require("sequelize");
 
 module.exports = (sequelize, DataTypes) => {
-  class UnloadingDetail extends Model {
+  class EmptyReturnsDetail extends Model {
     static associate(models) {
       // UnloadingDetail belongs to one UnloadingTransaction
-      UnloadingDetail.belongsTo(models.UnloadingTransaction, {
-        foreignKey: "unloading_id",
-        as: "unloadingTransaction",
+      EmptyReturnsDetail.belongsTo(models.EmptyReturn, {
+        foreignKey: "empty_return_id",
+        as: "emptyReturn",
       });
 
       // UnloadingDetail belongs to one Product
-      UnloadingDetail.belongsTo(models.Product, {
+      EmptyReturnsDetail.belongsTo(models.Product, {
         foreignKey: "product_id",
         as: "product",
       });
     }
   }
 
-  UnloadingDetail.init(
+  EmptyReturnsDetail.init(
     {
-      unloading_detail_id: {
+      empty_return_detail_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
       },
-      unloading_id: {
+      empty_return_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-          model: "UnloadingTransactions",
-          key: "unloading_id",
+          model: "EmptyReturns",
+          key: "empty_return_id",
         },
       },
       product_id: {
@@ -42,31 +42,23 @@ module.exports = (sequelize, DataTypes) => {
           key: "product_id",
         },
       },
-      cases_returned: {
+      empty_bottles_returned: {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
-      bottles_returned: {
+      empty_cases_returned: {
         type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-      total_bottles_returned: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-      value: {
-        type: DataTypes.FLOAT,
         allowNull: false,
       },
     },
     {
       sequelize,
-      modelName: "UnloadingDetail",
-      tableName: "UnloadingDetails",
+      modelName: "EmptyReturnsDetail",
+      tableName: "EmptyReturnsDetails",
       timestamps: true,
       underscored: true,
     }
   );
 
-  return UnloadingDetail;
+  return EmptyReturnsDetail;
 };

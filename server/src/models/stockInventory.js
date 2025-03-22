@@ -53,22 +53,6 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: DataTypes.NOW,
       },
-      empty_cases_qty: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-      empty_bottles_qty: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-      expired_bottles_qty: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-      total_expired_bottles_value: {
-        type: DataTypes.FLOAT,
-        allowNull: false,
-      },
     },
     {
       sequelize,
