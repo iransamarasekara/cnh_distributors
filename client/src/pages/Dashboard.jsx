@@ -110,7 +110,7 @@ const Dashboard = () => {
         ]);
 
         // Process sales data for overview metrics
-        const salesMetrics = processSalesData(dailySalesRes.data);
+        const salesMetrics = processSalesData(dailySalesRes.data.salesData);
         setOverviewMetrics({
           sellingBottles: salesMetrics.totalBottles,
           saleIncome: salesMetrics.totalIncome,
@@ -118,10 +118,12 @@ const Dashboard = () => {
         });
 
         // Process monthly data for chart
-        setMonthlyData(processMonthlyData(dailySalesRes.data));
+        setMonthlyData(processMonthlyData(dailySalesRes.data.salesData));
 
         // Process best selling products
-        setBestSellingProducts(processBestSellingProducts(dailySalesRes.data));
+        setBestSellingProducts(
+          processBestSellingProducts(dailySalesRes.data.salesData)
+        );
 
         // Process inventory metrics
         const inventory = processInventoryData(stockInventoryRes.data);

@@ -23,6 +23,9 @@ const InventoryReportsPage = () => {
   const [loadingTransactions, setLoadingTransactions] = useState([]);
   const [unloadingTransactions, setUnloadingTransactions] = useState([]);
   const [salesData, setSalesData] = useState([]);
+  const [totalGrossProfit, setTotalGrossProfit] = useState(0);
+  const [expiryReturns, setExpiryReturns] = useState([]);
+  const [emptyReturns, setEmptyReturns] = useState([]);
   const [stockData, setStockData] = useState([]);
 
   const tabs = ["ReportsOverview", "LorryPerformance"];
@@ -56,6 +59,8 @@ const InventoryReportsPage = () => {
           unloadingRes,
           salesRes,
           stockRes,
+          expiryRes,
+          emptyRes,
         ] = await Promise.all([
           axios.get(`${API_URL}/products`),
           axios.get(`${API_URL}/lorries`),
@@ -63,14 +68,19 @@ const InventoryReportsPage = () => {
           axios.get(`${API_URL}/unloading-transactions`, { params }),
           axios.get(`${API_URL}/daily-sales`, { params }),
           axios.get(`${API_URL}/stock-inventory`),
+          axios.get(`${API_URL}/expiry-returns`, { params }),
+          axios.get(`${API_URL}/empty-returns`, { params }),
         ]);
 
         setProducts(productsRes.data);
         setLorryData(lorriesRes.data);
         setLoadingTransactions(loadingRes.data);
         setUnloadingTransactions(unloadingRes.data);
-        setSalesData(salesRes.data);
+        setSalesData(salesRes.data.salesData);
+        setTotalGrossProfit(salesRes.data.totalGrossProfit);
         setStockData(stockRes.data);
+        setEmptyReturns(emptyRes.data);
+        setExpiryReturns(expiryRes.data);
       } catch (err) {
         setError("Failed to fetch data: " + err.message);
         console.error(err);
@@ -91,6 +101,9 @@ const InventoryReportsPage = () => {
       loadingTransactions,
       unloadingTransactions,
       salesData,
+      totalGrossProfit,
+      expiryReturns,
+      emptyReturns,
       stockData,
       isLoading,
       error,
