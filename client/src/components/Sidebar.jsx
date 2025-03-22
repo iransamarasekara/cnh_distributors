@@ -11,6 +11,7 @@ import {
   ArrowRightOnRectangleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  CreditCardIcon
 } from "@heroicons/react/24/outline";
 
 const Sidebar = () => {
@@ -43,6 +44,11 @@ const Sidebar = () => {
       icon: <PercentBadgeIcon className="w-5 h-5" />,
       label: "Discounts",
       url: "/discounts",
+    },
+    {
+      icon: <CreditCardIcon className="w-5 h-5" />,
+      label: "Credits",
+      url: "/credits",
     },
     {
       icon: <DocumentChartBarIcon className="w-5 h-5" />,

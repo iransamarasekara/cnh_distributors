@@ -521,6 +521,26 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr className="bg-gray-100">
+                      <td className="py-2 px-4 border-2 border-white"></td>
+                      <td className="py-2 px-4 border-2 border-white text-right">
+                        Total :
+                      </td>
+                      <td className="py-2 px-4 border-2 border-white text-center">
+                        {productsToLoad.reduce(
+                          (acc, item) => acc + item.cases_loaded,
+                          0
+                        )}
+                      </td>
+                      <td className="py-2 px-4 border-2 border-white text-center">
+                        {productsToLoad.reduce(
+                          (acc, item) => acc + item.bottles_loaded,
+                          0
+                        )}
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
