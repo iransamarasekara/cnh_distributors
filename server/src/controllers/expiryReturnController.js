@@ -4,8 +4,141 @@ const {
   ExpiryReturnsDetail,
   Lorry,
   Product,
+  sequelize,
 } = require("../models");
 const { Op } = require("sequelize");
+
+// controllers/expiryReturnsController.js
+
+// Add this new function to your existing controller file
+exports.createExpiryReturn = async (req, res) => {
+  try {
+    const { return_date, lorry_id, expiryReturnsDetails } = req.body;
+
+    // Validate required fields
+    if (
+      !return_date ||
+      !lorry_id ||
+      !expiryReturnsDetails ||
+      !Array.isArray(expiryReturnsDetails)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Missing required fields. Please provide return_date, lorry_id, and expiryReturnsDetails array",
+      });
+    }
+
+    // Validate expiryReturnsDetails array
+    if (expiryReturnsDetails.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "expiryReturnsDetails array cannot be empty",
+      });
+    }
+
+    // Check if each detail has the required fields
+    for (const detail of expiryReturnsDetails) {
+      if (
+        !detail.product_id ||
+        detail.bottles_expired === undefined ||
+        detail.expiry_value === undefined
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Each expiry return detail must have product_id, bottles_expired, and expiry_value",
+        });
+      }
+    }
+
+    // Create transaction to ensure both the header and details are created or none at all
+    const result = await sequelize.transaction(async (t) => {
+      // Create the expiry return header
+      const expiryReturn = await ExpiryReturn.create(
+        {
+          return_date,
+          lorry_id,
+        },
+        { transaction: t }
+      );
+
+      // Create the expiry return details
+      const details = await Promise.all(
+        expiryReturnsDetails.map((detail) =>
+          ExpiryReturnsDetail.create(
+            {
+              expiry_return_id: expiryReturn.expiry_return_id,
+              product_id: detail.product_id,
+              bottles_expired: detail.bottles_expired,
+              expiry_value: detail.expiry_value,
+            },
+            { transaction: t }
+          )
+        )
+      );
+
+      // Return the created data
+      return {
+        expiryReturn,
+        details,
+      };
+    });
+
+    // Fetch complete data with associations for the response
+    const createdExpiryReturn = await ExpiryReturn.findByPk(
+      result.expiryReturn.expiry_return_id,
+      {
+        include: [
+          {
+            model: Lorry,
+            as: "lorry",
+            attributes: ["lorry_id", "lorry_number"],
+          },
+          {
+            model: ExpiryReturnsDetail,
+            as: "expiryReturnsDetails",
+            include: [
+              {
+                model: Product,
+                as: "product",
+                attributes: ["product_id", "product_name", "size"],
+              },
+            ],
+          },
+        ],
+      }
+    );
+
+    // Calculate totals for summary
+    const totalExpiredBottles = createdExpiryReturn.expiryReturnsDetails.reduce(
+      (sum, detail) => sum + detail.bottles_expired,
+      0
+    );
+
+    const totalExpiryValue = createdExpiryReturn.expiryReturnsDetails.reduce(
+      (sum, detail) => sum + detail.expiry_value,
+      0
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Expiry return created successfully",
+      summary: {
+        totalExpiredBottles,
+        totalExpiryValue: parseFloat(totalExpiryValue.toFixed(2)),
+      },
+      data: createdExpiryReturn,
+    });
+  } catch (error) {
+    console.error("Error creating expiry return:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error creating expiry return",
+      error: error.message,
+    });
+  }
+};
 
 // Get expiry returns for a specific time period with optional lorry filter
 exports.getExpiryReturnsByTimeFrame = async (req, res) => {

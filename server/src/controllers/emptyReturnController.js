@@ -4,8 +4,154 @@ const {
   EmptyReturnsDetail,
   Lorry,
   Product,
+  sequelize,
 } = require("../models");
 const { Op } = require("sequelize");
+
+// Create a new empty return with details
+exports.createEmptyReturn = async (req, res) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const { return_date, lorry_id, details } = req.body;
+
+    // Validate required fields
+    if (
+      !return_date ||
+      !lorry_id ||
+      !details ||
+      !Array.isArray(details) ||
+      details.length === 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Missing required fields: return_date, lorry_id, and details array are required",
+      });
+    }
+
+    // Validate details array format
+    for (const detail of details) {
+      if (
+        !detail.product_id ||
+        detail.empty_bottles_returned === undefined ||
+        detail.empty_cases_returned === undefined
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Each detail must include product_id, empty_bottles_returned, and empty_cases_returned",
+        });
+      }
+    }
+
+    // Check if lorry exists
+    const lorry = await Lorry.findByPk(lorry_id);
+    if (!lorry) {
+      return res.status(404).json({
+        success: false,
+        message: `Lorry with ID ${lorry_id} not found`,
+      });
+    }
+
+    // Check if all products exist
+    const productIds = details.map((detail) => detail.product_id);
+    const products = await Product.findAll({
+      where: {
+        product_id: {
+          [Op.in]: productIds,
+        },
+      },
+    });
+
+    if (products.length !== productIds.length) {
+      return res.status(404).json({
+        success: false,
+        message: "One or more product IDs are invalid",
+      });
+    }
+
+    // Create empty return
+    const emptyReturn = await EmptyReturn.create(
+      {
+        return_date,
+        lorry_id,
+      },
+      { transaction }
+    );
+
+    // Create empty return details
+    const emptyReturnDetails = await Promise.all(
+      details.map((detail) =>
+        EmptyReturnsDetail.create(
+          {
+            empty_return_id: emptyReturn.empty_return_id,
+            product_id: detail.product_id,
+            empty_bottles_returned: detail.empty_bottles_returned,
+            empty_cases_returned: detail.empty_cases_returned,
+          },
+          { transaction }
+        )
+      )
+    );
+
+    await transaction.commit();
+
+    // Return newly created empty return with details
+    const createdEmptyReturn = await EmptyReturn.findByPk(
+      emptyReturn.empty_return_id,
+      {
+        include: [
+          {
+            model: Lorry,
+            as: "lorry",
+            attributes: ["lorry_id", "lorry_number"],
+          },
+          {
+            model: EmptyReturnsDetail,
+            as: "emptyReturnsDetails",
+            include: [
+              {
+                model: Product,
+                as: "product",
+                attributes: ["product_id", "product_name", "size"],
+              },
+            ],
+          },
+        ],
+      }
+    );
+
+    // Calculate summary statistics
+    const totalEmptyBottles = createdEmptyReturn.emptyReturnsDetails.reduce(
+      (sum, detail) => sum + detail.empty_bottles_returned,
+      0
+    );
+
+    const totalEmptyCases = createdEmptyReturn.emptyReturnsDetails.reduce(
+      (sum, detail) => sum + detail.empty_cases_returned,
+      0
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Empty return created successfully",
+      summary: {
+        totalEmptyBottles,
+        totalEmptyCases,
+      },
+      data: createdEmptyReturn,
+    });
+  } catch (error) {
+    await transaction.rollback();
+    console.error("Error creating empty return:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error creating empty return",
+      error: error.message,
+    });
+  }
+};
 
 // Get empty returns for a specific time period with optional lorry filter
 exports.getEmptyReturnsByTimeFrame = async (req, res) => {

@@ -12,7 +12,7 @@ module.exports = (sequelize, DataTypes) => {
 
       // UnloadingTransaction has many UnloadingDetails
       EmptyReturn.hasMany(models.EmptyReturnsDetail, {
-        foreignKey: "empty_return_detail_id",
+        foreignKey: "empty_return_id", // Corrected
         as: "emptyReturnsDetails",
       });
     }

@@ -8,9 +8,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [lorries, setLorries] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [productNames, setProductNames] = useState([]);
-  const [productSizes, setProductSizes] = useState([]);
+  // const [products, setProducts] = useState([]);
   const [lastLoadingData, setLastLoadingData] = useState(null);
   const [loadingDataLoading, setLoadingDataLoading] = useState(false);
   const [noActiveLoading, setNoActiveLoading] = useState(false);
@@ -23,10 +21,6 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
       bottles_returned: 0,
       cases_loaded: 0,
       bottles_loaded: 0,
-      expired_bottles_qty: 0,
-      expired_bottles_value: 0,
-      empty_bottles_qty: 0,
-      empty_cases_qty: 0,
     },
   ]);
 
@@ -41,6 +35,40 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [selectedLorry, setSelectedLorry] = useState(null);
 
+  // Generate color map for different product sizes
+  const generateSizeColorMap = () => {
+    const sizes = [
+      ...new Set(
+        unloadingItems
+          .filter((item) => item.product_id)
+          .map((item) => item.product_size)
+      ),
+    ];
+    const colorMap = {};
+
+    // Predefined colors for better visual distinction
+    const colors = [
+      "bg-blue-100",
+      "bg-green-100",
+      "bg-yellow-100",
+      "bg-purple-100",
+      "bg-pink-100",
+      "bg-indigo-100",
+      "bg-orange-100",
+      "bg-teal-100",
+      "bg-red-100",
+      "bg-cyan-100",
+    ];
+
+    sizes.forEach((size, index) => {
+      colorMap[size] = colors[index % colors.length];
+    });
+
+    return colorMap;
+  };
+
+  const sizeColorMap = generateSizeColorMap();
+
   // Fetch lorries and products on component mount
   useEffect(() => {
     const fetchLorries = async () => {
@@ -52,28 +80,17 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
       }
     };
 
-    const fetchProducts = async () => {
-      try {
-        const response = await axios.get(`${API_URL}/products`);
-        setProducts(response.data);
-
-        // Extract unique product names and sizes
-        const uniqueNames = [
-          ...new Set(response.data.map((product) => product.product_name)),
-        ];
-        const uniqueSizes = [
-          ...new Set(response.data.map((product) => product.size)),
-        ];
-
-        setProductNames(uniqueNames);
-        setProductSizes(uniqueSizes);
-      } catch (err) {
-        console.error("Failed to fetch products:", err);
-      }
-    };
+    // const fetchProducts = async () => {
+    //   try {
+    //     const response = await axios.get(`${API_URL}/products`);
+    //     setProducts(response.data);
+    //   } catch (err) {
+    //     console.error("Failed to fetch products:", err);
+    //   }
+    // };
 
     fetchLorries();
-    fetchProducts();
+    // fetchProducts();
   }, []);
 
   // Fetch last loading data when lorry is selected
@@ -85,26 +102,6 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
       setNoActiveLoading(false);
     }
   }, [formData.lorry_id]);
-
-  // Initialize unloading items with all products when products are loaded
-  useEffect(() => {
-    if (products.length > 0) {
-      const initialItems = products.map((product) => ({
-        product_id: product.product_id,
-        product_name: product.product_name,
-        product_size: product.size,
-        cases_returned: 0,
-        bottles_returned: 0,
-        cases_loaded: 0,
-        bottles_loaded: 0,
-        expired_bottles_qty: 0,
-        expired_bottles_value: 0,
-        empty_bottles_qty: 0,
-        empty_cases_qty: 0,
-      }));
-      setUnloadingItems(initialItems);
-    }
-  }, [products]);
 
   // Fetch last loading transaction for the selected lorry
   const fetchLastLoadingData = async (lorryId) => {
@@ -124,34 +121,37 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
         // Check if the last loading transaction is already unloaded
         if (response.data[0].status === "Unloaded") {
           setNoActiveLoading(true);
+          // Reset unloading items
+          setUnloadingItems([
+            {
+              product_id: "",
+              product_name: "",
+              product_size: "",
+              cases_returned: 0,
+              bottles_returned: 0,
+              cases_loaded: 0,
+              bottles_loaded: 0,
+            },
+          ]);
         } else {
-          // Update the loaded quantities in our full product list
+          // Populate unloading items with last loading data
           if (
             response.data[0].loadingDetails &&
             response.data[0].loadingDetails.length > 0
           ) {
-            const loadedItems = response.data[0].loadingDetails;
-
-            // Create a map of loaded quantities
-            const loadedMap = {};
-            loadedItems.forEach((detail) => {
-              loadedMap[detail.product.product_id] = {
+            const loadedItems = response.data[0].loadingDetails.map(
+              (detail) => ({
+                product_id: detail.product.product_id,
+                product_name: detail.product.product_name,
+                product_size: detail.product.size,
+                cases_returned: 0,
+                bottles_returned: 0,
                 cases_loaded: detail.cases_loaded,
                 bottles_loaded: detail.bottles_loaded,
-              };
-            });
-
-            // Update our unloading items with the loaded quantities
-            setUnloadingItems((prevItems) =>
-              prevItems.map((item) => {
-                const loadedInfo = loadedMap[item.product_id];
-                return {
-                  ...item,
-                  cases_loaded: loadedInfo ? loadedInfo.cases_loaded : 0,
-                  bottles_loaded: loadedInfo ? loadedInfo.bottles_loaded : 0,
-                };
               })
             );
+
+            setUnloadingItems(loadedItems);
           }
         }
       } else {
@@ -181,16 +181,11 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
 
     const invalidItems = unloadingItems.filter(
       (item) =>
-        item.cases_returned < 0 ||
-        item.bottles_returned < 0 ||
-        item.expired_bottles_qty < 0 ||
-        item.expired_bottles_value < 0 ||
-        item.empty_bottles_qty < 0 ||
-        item.empty_cases_qty < 0
+        !item.product_id || item.cases_returned < 0 || item.bottles_returned < 0
     );
 
     if (invalidItems.length > 0) {
-      setError("Please enter valid quantities (zero or positive numbers)");
+      setError("Please fill in all product details with valid quantities");
       return;
     }
 
@@ -217,23 +212,11 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
       const unloadingData = {
         ...formData,
         unloadingDetails: unloadingItems
-          .filter(
-            (item) =>
-              item.product_id &&
-              (item.cases_returned > 0 ||
-                item.bottles_returned > 0 ||
-                item.expired_bottles_qty > 0 ||
-                item.empty_bottles_qty > 0 ||
-                item.empty_cases_qty > 0)
-          )
+          .filter((item) => item.product_id)
           .map((item) => ({
             product_id: item.product_id,
             cases_returned: parseInt(item.cases_returned),
             bottles_returned: parseInt(item.bottles_returned),
-            expired_bottles_qty: parseInt(item.expired_bottles_qty),
-            expired_bottles_value: parseFloat(item.expired_bottles_value),
-            empty_bottles_qty: parseInt(item.empty_bottles_qty),
-            empty_cases_qty: parseInt(item.empty_cases_qty),
           })),
       };
 
@@ -252,21 +235,17 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
         status: "Completed",
       });
 
-      // Reset products to initial state
-      const initialItems = products.map((product) => ({
-        product_id: product.product_id,
-        product_name: product.product_name,
-        product_size: product.size,
-        cases_returned: 0,
-        bottles_returned: 0,
-        cases_loaded: 0,
-        bottles_loaded: 0,
-        expired_bottles_qty: 0,
-        expired_bottles_value: 0,
-        empty_bottles_qty: 0,
-        empty_cases_qty: 0,
-      }));
-      setUnloadingItems(initialItems);
+      setUnloadingItems([
+        {
+          product_id: "",
+          product_name: "",
+          product_size: "",
+          cases_returned: 0,
+          bottles_returned: 0,
+          cases_loaded: 0,
+          bottles_loaded: 0,
+        },
+      ]);
 
       setLastLoadingData(null);
       setNoActiveLoading(false);
@@ -303,6 +282,8 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
     setUnloadingItems(updatedItems);
   };
 
+  // Add another unloading item (removed since products can't be added manually anymore)
+
   return (
     <div className="p-6">
       <h2 className="text-xl font-semibold mb-6">Add New Unloading</h2>
@@ -321,7 +302,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
 
       {showConfirmation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 max-w-5xl w-full max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-4">
               Confirm Unloading Transaction
             </h3>
@@ -342,84 +323,63 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
             <div className="mb-4">
               <p className="font-semibold mb-2">Products Returned:</p>
               <div className="overflow-x-auto">
-                <table className="min-w-full border">
+                <table className="min-w-full border-white">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="py-2 px-4 border text-left">Product</th>
-                      <th className="py-2 px-4 border text-left">Size</th>
-                      <th className="py-2 px-4 border text-center">
+                      <th className="py-2 px-4 border-white border-2 text-left">
+                        Size
+                      </th>
+                      <th className="py-2 px-4 border-white border-2 text-left">
+                        Product
+                      </th>
+                      <th className="py-2 px-4 border-white border-2 text-center">
                         Cases Loaded
                       </th>
-                      <th className="py-2 px-4 border text-center">
+                      <th className="py-2 px-4 border-white border-2 text-center">
                         Bottles Loaded
                       </th>
-                      <th className="py-2 px-4 border text-center">
+                      <th className="py-2 px-4 border-white border-2 text-center">
                         Cases Returned
                       </th>
-                      <th className="py-2 px-4 border text-center">
+                      <th className="py-2 px-4 border-white border-2 text-center">
                         Bottles Returned
-                      </th>
-                      <th className="py-2 px-4 border text-center">
-                        Expired Bottles
-                      </th>
-                      <th className="py-2 px-4 border text-center">
-                        Expired Value
-                      </th>
-                      <th className="py-2 px-4 border text-center">
-                        Empty Bottles
-                      </th>
-                      <th className="py-2 px-4 border text-center">
-                        Empty Cases
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {unloadingItems
-                      .filter(
-                        (item) =>
-                          item.product_id &&
-                          (item.cases_returned > 0 ||
-                            item.bottles_returned > 0 ||
-                            item.expired_bottles_qty > 0 ||
-                            item.empty_bottles_qty > 0 ||
-                            item.empty_cases_qty > 0)
-                      )
-                      .map((item) => (
-                        <tr key={item.product_id}>
-                          <td className="py-1 px-4 border">
-                            {item.product_name}
-                          </td>
-                          <td className="py-1 px-4 border">
+                      .filter((item) => item.product_id)
+                      .map((item, index) => (
+                        <tr
+                          key={`${item.product_id}-${index}`}
+                          className={sizeColorMap[item.product_size]}
+                        >
+                          <td className="py-1 px-4 border-white border-2 font-medium">
                             {item.product_size}
                           </td>
-                          <td className="py-1 px-4 border text-center">
+                          <td className="py-1 px-4 border-white border-2 ">
+                            {item.product_name}
+                          </td>
+
+                          <td className="py-1 px-4 border-white border-2 text-center">
                             {item.cases_loaded}
                           </td>
-                          <td className="py-1 px-4 border text-center">
+                          <td className="py-1 px-4 border-white border-2 text-center">
                             {item.bottles_loaded}
                           </td>
-                          <td className="py-1 px-4 border text-center">
+                          <td className="py-1 px-4 border-white border-2 text-center">
                             {item.cases_returned}
                           </td>
-                          <td className="py-1 px-4 border text-center">
+                          <td className="py-1 px-4 border-white border-2 text-center">
                             {item.bottles_returned}
-                          </td>
-                          <td className="py-1 px-4 border text-center">
-                            {item.expired_bottles_qty}
-                          </td>
-                          <td className="py-1 px-4 border text-center">
-                            {item.expired_bottles_value}
-                          </td>
-                          <td className="py-1 px-4 border text-center">
-                            {item.empty_bottles_qty}
-                          </td>
-                          <td className="py-1 px-4 border text-center">
-                            {item.empty_cases_qty}
                           </td>
                         </tr>
                       ))}
                   </tbody>
                 </table>
+                <div className="mt-2 text-xs text-gray-500">
+                  * Products are color-coded by size for easier identification
+                </div>
               </div>
             </div>
 
@@ -571,7 +531,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
 
         {/* Unloading Items */}
         <div className="mb-6">
-          <h3 className="text-lg font-medium mb-4">Returned Products</h3>
+          <h3 className="text-lg font-medium mb-4">Unloaded Products</h3>
 
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white border border-white">
@@ -590,162 +550,93 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                     Bottles Loaded
                   </th>
                   <th className="py-2 px-4 border-2 border-white text-center">
-                    Cases Returned
+                    Cases Unloaded
                   </th>
                   <th className="py-2 px-4 border-2 border-white text-center">
-                    Bottles Returned
-                  </th>
-                  <th className="py-2 px-4 border-2 border-white text-center">
-                    Expired Bottles
-                  </th>
-                  <th className="py-2 px-4 border-2 border-white text-center">
-                    Expired Value
-                  </th>
-                  <th className="py-2 px-4 border-2 border-white text-center">
-                    Empty Bottles
-                  </th>
-                  <th className="py-2 px-4 border-2 border-white text-center">
-                    Empty Cases
+                    Bottles Unloaded
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {unloadingItems.length > 0 ? (
-                  unloadingItems.map((item, index) => (
-                    <tr
-                      key={index}
-                      className={index % 2 === 0 ? "bg-gray-50" : ""}
-                    >
-                      <td className="py-1 px-4 border-2 border-white">
-                        {item.product_size}
-                      </td>
-                      <td className="py-1 px-4 border-2 border-white">
-                        {item.product_name}
-                      </td>
-                      <td className="py-1 px-4 border-2 border-white text-center">
-                        <input
-                          type="number"
-                          value={item.cases_loaded || 0}
-                          className="shadow appearance-none border border-gray-200 bg-gray-100 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                          disabled
-                        />
-                      </td>
-                      <td className="py-1 px-4 border-2 border-white text-center">
-                        <input
-                          type="number"
-                          value={item.bottles_loaded || 0}
-                          className="shadow appearance-none border border-gray-200 bg-gray-100 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                          disabled
-                        />
-                      </td>
-                      <td className="py-1 px-4 border-2 border-white">
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.cases_returned}
-                          onChange={(e) =>
-                            handleUnloadingItemChange(
-                              index,
-                              "cases_returned",
-                              e.target.value
-                            )
-                          }
-                          className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                          disabled={noActiveLoading}
-                        />
-                      </td>
-                      <td className="py-1 px-4 border-2 border-white">
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.bottles_returned}
-                          onChange={(e) =>
-                            handleUnloadingItemChange(
-                              index,
-                              "bottles_returned",
-                              e.target.value
-                            )
-                          }
-                          className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                          disabled={noActiveLoading}
-                        />
-                      </td>
-                      <td className="py-1 px-4 border-2 border-white">
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.expired_bottles_qty}
-                          onChange={(e) =>
-                            handleUnloadingItemChange(
-                              index,
-                              "expired_bottles_qty",
-                              e.target.value
-                            )
-                          }
-                          className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                          disabled={noActiveLoading}
-                        />
-                      </td>
-                      <td className="py-1 px-4 border-2 border-white">
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.expired_bottles_value}
-                          onChange={(e) =>
-                            handleUnloadingItemChange(
-                              index,
-                              "expired_bottles_value",
-                              e.target.value
-                            )
-                          }
-                          className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                          disabled={noActiveLoading}
-                        />
-                      </td>
-                      <td className="py-1 px-4 border-2 border-white">
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.empty_bottles_qty}
-                          onChange={(e) =>
-                            handleUnloadingItemChange(
-                              index,
-                              "empty_bottles_qty",
-                              e.target.value
-                            )
-                          }
-                          className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                          disabled={noActiveLoading}
-                        />
-                      </td>
-                      <td className="py-1 px-4 border-2 border-white">
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.empty_cases_qty}
-                          onChange={(e) =>
-                            handleUnloadingItemChange(
-                              index,
-                              "empty_cases_qty",
-                              e.target.value
-                            )
-                          }
-                          className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                          disabled={noActiveLoading}
-                        />
-                      </td>
-                    </tr>
-                  ))
+                  unloadingItems
+                    .filter((item) => item.product_id)
+                    .map((item, index) => (
+                      <tr
+                        key={index}
+                        className={`${
+                          item.validationError ? "bg-red-100" : ""
+                        } ${
+                          item.product_size
+                            ? sizeColorMap[item.product_size]
+                            : ""
+                        }`}
+                      >
+                        <td className="py-1 px-4 border-2 border-white font-medium">
+                          {item.product_size}
+                        </td>
+                        <td className="py-1 px-4 border-2 border-white">
+                          {item.product_name}
+                        </td>
+                        <td className="py-1 px-4 border-2 border-white text-center">
+                          {item.cases_loaded || 0}
+                        </td>
+                        <td className="py-1 px-4 border-2 border-white text-center">
+                          {item.bottles_loaded || 0}
+                        </td>
+                        <td className="py-1 px-4 border-2 border-white">
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.cases_returned}
+                            onChange={(e) =>
+                              handleUnloadingItemChange(
+                                index,
+                                "cases_returned",
+                                e.target.value
+                              )
+                            }
+                            onWheel={(e) => e.target.blur()} // Prevent scrolling from changing values
+                            className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            disabled={noActiveLoading}
+                          />
+                        </td>
+                        <td className="py-1 px-4 border-2 border-white">
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.bottles_returned}
+                            onChange={(e) =>
+                              handleUnloadingItemChange(
+                                index,
+                                "bottles_returned",
+                                e.target.value
+                              )
+                            }
+                            onWheel={(e) => e.target.blur()} // Prevent scrolling from changing values
+                            className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            disabled={noActiveLoading}
+                          />
+                          {item.validationError && (
+                            <p className="text-red-500 text-xs mt-1">
+                              {item.validationError}
+                            </p>
+                          )}
+                        </td>
+                      </tr>
+                    ))
                 ) : (
                   <tr>
-                    <td colSpan="10" className="py-4 text-center text-gray-500">
+                    <td colSpan="6" className="py-4 text-center text-gray-500">
                       No products available for unloading.
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
+            <div className="mt-2 text-xs text-gray-500">
+              * Products are color-coded by size for easier identification
+            </div>
           </div>
 
           <div className="mt-6 flex justify-end">

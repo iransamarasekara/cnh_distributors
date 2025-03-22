@@ -11,8 +11,9 @@ module.exports = (sequelize, DataTypes) => {
       });
 
       // UnloadingTransaction has many UnloadingDetails
+      // This association in ExpiryReturn model should be:
       ExpiryReturn.hasMany(models.ExpiryReturnsDetail, {
-        foreignKey: "expiry_return_detail_id",
+        foreignKey: "expiry_return_id", // Not expiry_return_detail_id
         as: "expiryReturnsDetails",
       });
     }
