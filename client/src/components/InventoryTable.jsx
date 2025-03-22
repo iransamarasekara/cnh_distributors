@@ -126,17 +126,27 @@ const InventoryTable = ({ inventoryData }) => {
         <tfoot>
           <tr className="bg-blue-200">
             <td
-              colSpan="10"
+              colSpan="8"
               className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-2 border-white text-right"
             >
               Total:
             </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-2 border-white">
+            <td className="px-6 py-4 whitespace-nowrap items-center text-sm font-medium text-gray-900 border-2 border-white">
+              {inventoryData
+                .reduce((sum, item) => sum + item.cases_qty, 0)
+                .toLocaleString()}
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm items-center font-medium text-gray-900 border-2 border-white">
+              {inventoryData
+                .reduce((sum, item) => sum + item.bottles_qty, 0)
+                .toLocaleString()}
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium items-center text-gray-900 border-2 border-white">
               {inventoryData
                 .reduce((sum, item) => sum + item.total_bottles, 0)
                 .toLocaleString()}
             </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-2 border-white">
+            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium items-center text-gray-900 border-2 border-white">
               {inventoryData
                 .reduce((sum, item) => sum + item.total_value, 0)
                 .toLocaleString(undefined, {
