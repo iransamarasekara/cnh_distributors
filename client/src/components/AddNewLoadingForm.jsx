@@ -425,10 +425,18 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
   });
 
   // Get products to load for confirmation dialog
-  const productsToLoad = productEntries.filter(
-    (entry) =>
-      parseInt(entry.cases_loaded) > 0 || parseInt(entry.bottles_loaded) > 0
-  );
+  const productsToLoad = productEntries
+    .filter(
+      (entry) =>
+        parseInt(entry.cases_loaded) > 0 || parseInt(entry.bottles_loaded) > 0
+    )
+    // Sort products in the confirmation dialog by size then by name
+    .sort((a, b) => {
+      if (a.sizeOrderValue === b.sizeOrderValue) {
+        return a.product_name.localeCompare(b.product_name);
+      }
+      return a.sizeOrderValue - b.sizeOrderValue;
+    });
 
   // Get selected lorry details
   const selectedLorry = lorries.find(
@@ -475,33 +483,64 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
             <div className="mb-4">
               <p className="font-semibold mb-2">Products to Load:</p>
               <div className="overflow-x-auto">
-                <table className="min-w-full border">
+                <table className="min-w-full border border-white">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="py-2 px-4 border  text-left">Product</th>
-                      <th className="py-2 px-4 border  text-left">Size</th>
-                      <th className="py-2 px-4 border  text-center">Cases</th>
-                      <th className="py-2 px-4 border  text-center">Bottles</th>
+                      <th className="py-2 px-4 border-2 border-white text-left">
+                        Size
+                      </th>
+                      <th className="py-2 px-4 border-2 border-white text-left">
+                        Product Name
+                      </th>
+                      <th className="py-2 px-4 border-2 border-white text-center">
+                        Cases
+                      </th>
+                      <th className="py-2 px-4 border-2 border-white text-center">
+                        Bottles
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {productsToLoad.map((product) => (
-                      <tr key={product.product_id}>
-                        <td className="py-1 px-4 border ">
-                          {product.product_name}
-                        </td>
-                        <td className="py-1 px-4 border ">
+                      <tr
+                        key={product.product_id}
+                        className={`${sizeColors[product.product_size]}`}
+                      >
+                        <td className="py-1 px-4 border-2 border-white font-medium">
                           {product.product_size}
                         </td>
-                        <td className="py-1 px-4 border  text-center">
+                        <td className="py-1 px-4 border-2 border-white">
+                          {product.product_name}
+                        </td>
+                        <td className="py-1 px-4 border-2 border-white text-center">
                           {product.cases_loaded}
                         </td>
-                        <td className="py-1 px-4 border  text-center">
+                        <td className="py-1 px-4 border-2 border-white text-center">
                           {product.bottles_loaded}
                         </td>
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr className="bg-gray-100">
+                      <td className="py-2 px-4 border-2 border-white"></td>
+                      <td className="py-2 px-4 border-2 border-white text-right">
+                        Total :
+                      </td>
+                      <td className="py-2 px-4 border-2 border-white text-center">
+                        {productsToLoad.reduce(
+                          (acc, item) => acc + item.cases_loaded,
+                          0
+                        )}
+                      </td>
+                      <td className="py-2 px-4 border-2 border-white text-center">
+                        {productsToLoad.reduce(
+                          (acc, item) => acc + item.bottles_loaded,
+                          0
+                        )}
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
@@ -690,6 +729,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
                                   e.target.value
                                 )
                               }
+                              onWheel={(e) => e.target.blur()} // Prevent scrolling from changing values
                               className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                             />
                           </td>
@@ -705,6 +745,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
                                   e.target.value
                                 )
                               }
+                              onWheel={(e) => e.target.blur()} // Prevent scrolling from changing values
                               className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                             />
                             {entry.validationError && (

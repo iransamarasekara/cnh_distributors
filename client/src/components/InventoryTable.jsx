@@ -74,28 +74,28 @@ const InventoryTable = ({ inventoryData }) => {
           {inventoryData.map((item, index) => (
             <>
               <tr className={index % 2 === 0 ? "bg-gray-200" : "bg-blue-100"}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
+                <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
                   {item.sku}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
+                <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
                   {item.size}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
+                <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
                   {item.product_name}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
+                <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
                   {item.bottles_per_case}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-right">
+                <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-right">
                   {item.unit_price.toFixed(2)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-right">
+                <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-right">
                   {item.selling_price.toFixed(2)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
+                <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
                   {(item.selling_price - item.unit_price).toFixed(2)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
+                <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
                   {(item.selling_price * item.bottles_per_case).toLocaleString(
                     undefined,
                     {
@@ -104,16 +104,16 @@ const InventoryTable = ({ inventoryData }) => {
                     }
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-center">
+                <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-center">
                   {item.cases_qty}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-center">
+                <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-center">
                   {item.bottles_qty}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-center">
+                <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-center">
                   {item.total_bottles.toLocaleString()}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-right">
+                <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-right">
                   {item.total_value.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
@@ -126,17 +126,27 @@ const InventoryTable = ({ inventoryData }) => {
         <tfoot>
           <tr className="bg-blue-200">
             <td
-              colSpan="10"
+              colSpan="8"
               className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-2 border-white text-right"
             >
               Total:
             </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-2 border-white">
+            <td className="px-6 py-4 whitespace-nowrap items-center text-sm font-medium text-gray-900 border-2 border-white">
+              {inventoryData
+                .reduce((sum, item) => sum + item.cases_qty, 0)
+                .toLocaleString()}
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm items-center font-medium text-gray-900 border-2 border-white">
+              {inventoryData
+                .reduce((sum, item) => sum + item.bottles_qty, 0)
+                .toLocaleString()}
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium items-center text-gray-900 border-2 border-white">
               {inventoryData
                 .reduce((sum, item) => sum + item.total_bottles, 0)
                 .toLocaleString()}
             </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-2 border-white">
+            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium items-center text-gray-900 border-2 border-white">
               {inventoryData
                 .reduce((sum, item) => sum + item.total_value, 0)
                 .toLocaleString(undefined, {

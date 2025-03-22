@@ -41,7 +41,7 @@ const LoginForm = () => {
         <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>
       )}
 
-      <div className="mb-4">
+      <div className="mb-2">
         <input
           type="username"
           placeholder="Username"
