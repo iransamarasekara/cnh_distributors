@@ -23,8 +23,9 @@ const LoginForm = () => {
       setIsLoading(true);
       setError("");
 
-      await login(username, password);
-      navigate("/dashboard");
+      const user = await login(username, password);
+      if (user.role === "admin") navigate("/dashboard");
+      else navigate("/loading-management");
     } catch (err) {
       setError(
         err.response?.data?.message || "Invalid credentials. Please try again."

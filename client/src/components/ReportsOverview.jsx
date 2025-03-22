@@ -1,27 +1,362 @@
 import React, { useRef } from "react";
 
-const ConsolidatedInventoryReport = ({ 
-  consolidatedData, 
-  lorryData, 
-  lorryIds, 
-  dateRange, 
-  isLoading, 
-  error,
-  downloadCSV,
-  handlePrint
+const ReportsOverview = ({
+  products,
+  lorryData,
+  loadingTransactions,
+  unloadingTransactions,
+  salesData,
+  stockData,
+  dateRange,
 }) => {
   const printRef = useRef();
 
-  if (isLoading) {
-    return <div className="text-center py-8">Loading inventory data...</div>;
-  }
+  // Process all data into a consolidated report
+  const processConsolidatedData = () => {
+    if (!products.length) return [];
 
-  if (error) {
-    return <div className="text-center py-8 text-red-500">{error}</div>;
-  }
+    // Create a map to hold consolidated data for each product
+    const productMap = new Map();
+
+    // Initialize with product information
+    products.forEach((product) => {
+      productMap.set(product.product_id, {
+        // Product Details
+        product_id: product.product_id,
+        product_name: product.product_name,
+        size: product.size || "Standard",
+        case_of_bottle: product.bottles_per_case || 0,
+        unit_price: product.unit_price || 0,
+        selling_price: product.selling_price || 0,
+
+        // Price Details
+        profit_margin:
+          product.selling_price && product.unit_price
+            ? (product.selling_price - product.unit_price).toFixed(2)
+            : 0,
+        case_price: product.unit_price * (product.bottles_per_case || 0),
+
+        // Initialize lorry data (will be populated)
+        lorry_data: {},
+
+        // Initialize current stock (will be updated)
+        current_stock_case: 0,
+        current_stock_bottles: 0,
+
+        // Initialize sales data (will be updated)
+        total_bottles: 0,
+        total_value: 0,
+        no_of_sale_units: 0,
+        sale_income: 0,
+        gross_profit: 0,
+      });
+    });
+
+    // Process lorry data
+    const lorryIds = lorryData.map((lorry) => lorry.lorry_id);
+
+    // Initialize lorry data structure for each product
+    productMap.forEach((productData) => {
+      lorryIds.forEach((lorryId) => {
+        const lorryNumber =
+          lorryData.find((l) => l.lorry_id === lorryId)?.lorry_number ||
+          `Lorry ${lorryId}`;
+
+        productData.lorry_data[lorryId] = {
+          lorry_number: lorryNumber,
+          cases_loaded: 0,
+          bottles_loaded: 0,
+          cases_returned: 0,
+          bottles_returned: 0,
+        };
+      });
+    });
+
+    // Process loading transactions
+    loadingTransactions.forEach((transaction) => {
+      if (transaction.loadingDetails && transaction.loadingDetails.length > 0) {
+        transaction.loadingDetails.forEach((detail) => {
+          const productId = detail.product_id;
+          const lorryId = transaction.lorry_id;
+
+          if (productMap.has(productId) && lorryId) {
+            const productData = productMap.get(productId);
+
+            if (productData.lorry_data[lorryId]) {
+              productData.lorry_data[lorryId].cases_loaded +=
+                detail.cases_loaded || 0;
+              productData.lorry_data[lorryId].bottles_loaded +=
+                detail.bottles_loaded || 0;
+            }
+          }
+        });
+      }
+    });
+
+    // Process unloading transactions
+    unloadingTransactions.forEach((transaction) => {
+      if (
+        transaction.unloadingDetails &&
+        transaction.unloadingDetails.length > 0
+      ) {
+        transaction.unloadingDetails.forEach((detail) => {
+          const productId = detail.product_id;
+          const lorryId = transaction.lorry_id;
+
+          if (productMap.has(productId) && lorryId) {
+            const productData = productMap.get(productId);
+
+            if (productData.lorry_data[lorryId]) {
+              productData.lorry_data[lorryId].cases_returned +=
+                detail.cases_returned || 0;
+              productData.lorry_data[lorryId].bottles_returned +=
+                detail.bottles_returned || 0;
+            }
+          }
+        });
+      }
+    });
+
+    // Process stock data
+    stockData.forEach((stockItem) => {
+      const productId = stockItem.product_id;
+
+      if (productMap.has(productId)) {
+        const productData = productMap.get(productId);
+        productData.current_stock_case = stockItem.cases_qty || 0;
+        productData.current_stock_bottles = stockItem.bottles_qty || 0;
+        productData.total_bottles = stockItem.total_bottles || 0;
+        productData.total_value = stockItem.total_value || 0;
+      }
+    });
+
+    // Process sales data
+    salesData.forEach((saleItem) => {
+      const productId = saleItem.product_id;
+
+      if (productMap.has(productId)) {
+        const productData = productMap.get(productId);
+        productData.no_of_sale_units =
+          (productData.no_of_sale_units || 0) + (saleItem.units_sold || 0);
+        productData.sale_income =
+          (productData.sale_income || 0) + (saleItem.sales_income || 0);
+        productData.gross_profit =
+          (productData.gross_profit || 0) + (saleItem.gross_profit || 0);
+      }
+    });
+
+    // Convert Map to Array
+    const resultArray = Array.from(productMap.values());
+
+    // Define custom size order
+    const sizeOrder = {
+      "175 mL": 1,
+      "250 mL": 4,
+      "300 mL": 2,
+      "355 mL": 9,
+      "400 mL": 5,
+      "500 mL": 10,
+      "750 mL": 3,
+      "1 L": 11,
+      "1050 mL": 6,
+      "1.5 L": 7,
+      "2 L": 8,
+      Standard: 999, // Place "Standard" at the end
+    };
+
+    // Sort by the custom size order
+    return resultArray.sort((a, b) => {
+      // Get the order value for each size, defaulting to a high number if not found
+      const sizeA = a.size || "Standard";
+      const sizeB = b.size || "Standard";
+
+      const orderA = sizeOrder[sizeA] !== undefined ? sizeOrder[sizeA] : 500;
+      const orderB = sizeOrder[sizeB] !== undefined ? sizeOrder[sizeB] : 500;
+
+      // For sizes not in our predefined order, fall back to numeric sorting
+      if (orderA === 500 && orderB === 500) {
+        // Extract numeric values for comparison
+        const extractSizeValue = (size) => {
+          const sizeStr = String(size).trim();
+          const match = sizeStr.match(/(\d+)/);
+          if (match && match[1]) {
+            return parseInt(match[1], 10);
+          }
+          return 9999;
+        };
+
+        return extractSizeValue(sizeA) - extractSizeValue(sizeB);
+      }
+
+      return orderA - orderB;
+    });
+  };
+
+  const consolidatedData = processConsolidatedData();
+
+  // Get unique lorry IDs from lorry data
+  const lorryIds = lorryData.map((lorry) => lorry.lorry_id);
+
+  // Download CSV function
+  const downloadCSV = () => {
+    if (consolidatedData.length === 0) {
+      alert("No data available to export");
+      return;
+    }
+
+    // Create CSV header
+    let headers = [
+      "Size",
+      "Brand",
+      "Case of Bottles",
+      "Unit Price",
+      "Selling Price",
+      "Profit Margin",
+    ];
+
+    // Add lorry headers
+    lorryIds.forEach((lorryId) => {
+      const lorryNumber =
+        lorryData.find((l) => l.lorry_id === lorryId)?.lorry_number ||
+        `Lorry ${lorryId}`;
+      headers.push(
+        `${lorryNumber} Loading Cases`,
+        `${lorryNumber} Loading Bottles`,
+        `${lorryNumber} Unloading Cases`,
+        `${lorryNumber} Unloading Bottles`
+      );
+    });
+
+    // Add remaining headers
+    headers = headers.concat([
+      "Current Stock Cases",
+      "Current Stock Bottles",
+      "Total Bottles",
+      "Total Value",
+      "No of Sale Units",
+      "Sale Income",
+    ]);
+
+    // Convert data to CSV rows
+    const csvRows = [];
+    csvRows.push(headers.join(","));
+
+    consolidatedData.forEach((item) => {
+      const row = [
+        `"${item.size}"`,
+        `"${item.product_name}"`,
+        item.case_of_bottle,
+        item.unit_price,
+        item.selling_price,
+        item.profit_margin,
+      ];
+
+      // Add lorry data
+      lorryIds.forEach((lorryId) => {
+        const lorryInfo = item.lorry_data[lorryId] || {
+          cases_loaded: 0,
+          bottles_loaded: 0,
+          cases_returned: 0,
+          bottles_returned: 0,
+        };
+
+        row.push(
+          lorryInfo.cases_loaded,
+          lorryInfo.bottles_loaded,
+          lorryInfo.cases_returned,
+          lorryInfo.bottles_returned
+        );
+      });
+
+      // Add remaining data
+      row.push(
+        item.current_stock_case,
+        item.current_stock_bottles,
+        item.total_bottles,
+        item.total_value,
+        item.no_of_sale_units,
+        item.sale_income
+      );
+
+      csvRows.push(row.join(","));
+    });
+
+    // Create and download the CSV file
+    const csvContent = csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    const startDate =
+      dateRange?.startDate?.toLocaleDateString().replace(/\//g, "-") || "all";
+    const endDate =
+      dateRange?.endDate?.toLocaleDateString().replace(/\//g, "-") || "present";
+    link.setAttribute(
+      "download",
+      `inventory-report-${startDate}-to-${endDate}.csv`
+    );
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Print function
+  const handlePrint = () => {
+    const content = printRef.current;
+    const printWindow = window.open("", "", "height=600,width=800");
+
+    printWindow.document.write("<html><head><title>Inventory Report</title>");
+
+    // Add styles for printing
+    printWindow.document.write(`
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h2 { text-align: center; margin-bottom: 10px; }
+        p { text-align: center; margin-bottom: 20px; color: #666; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 4px; font-size: 12px; }
+        thead tr:first-child th { background-color: #f0f0f0; }
+        thead tr:nth-child(2) th { background-color: #f8f8f8; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        @media print {
+          .no-print { display: none; }
+        }
+      </style>
+    `);
+
+    printWindow.document.write("</head><body>");
+    printWindow.document.write("<h2>Consolidated Inventory Report</h2>");
+    printWindow.document.write(
+      `<p>Period: ${
+        dateRange?.startDate?.toLocaleDateString() || "All time"
+      } to ${dateRange?.endDate?.toLocaleDateString() || "Present"}</p>`
+    );
+    printWindow.document.write(content.innerHTML);
+    printWindow.document.write("</body></html>");
+
+    printWindow.document.close();
+    printWindow.focus();
+
+    // Add slight delay to ensure content is loaded before printing
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
 
   return (
     <div className="mx-auto">
+      <h2 className="text-xl font-bold mb-4">Consolidated Inventory Report</h2>
+      <p className="mb-4 text-gray-600">
+        Period: {dateRange?.startDate?.toLocaleDateString() || "All time"} to{" "}
+        {dateRange?.endDate?.toLocaleDateString() || "Present"}
+      </p>
+
       <div
         ref={printRef}
         className="overflow-x-auto border border-gray-400 rounded-lg shadow-sm"
@@ -323,7 +658,7 @@ const ConsolidatedInventoryReport = ({
           Export CSV
         </button>
         <button
-          onClick={() => handlePrint(printRef)}
+          onClick={handlePrint}
           className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
         >
           Print Report
@@ -333,4 +668,4 @@ const ConsolidatedInventoryReport = ({
   );
 };
 
-export default ConsolidatedInventoryReport;
+export default ReportsOverview;

@@ -31,15 +31,17 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
 
   // Custom size order mapping
   const sizeOrderMap = {
-    "175mL": 1,
-    "300mL": 2,
-    "750mL": 3,
-    "250mL": 4,
-    "400mL": 5,
-    "1L": 6,
-    "1050mL": 7,
-    "1.5L": 8,
-    "2L": 9,
+    "175 mL": 1,
+    "250 mL": 4,
+    "300 mL": 2,
+    "355 mL": 9,
+    "400 mL": 5,
+    "500 mL": 10,
+    "750 mL": 3,
+    "1 L": 11,
+    "1050 mL": 6,
+    "1.5 L": 7,
+    "2 L": 8,
   };
 
   // Helper function to get order value based on custom size order
@@ -95,8 +97,8 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
             product_name: product.product_name,
             product_size: product.size,
             bottles_per_case: product.bottles_per_case,
-            cases_loaded: null,
-            bottles_loaded: null,
+            cases_loaded: 0,
+            bottles_loaded: 0,
             cases_available: inventory.cases_qty || 0,
             bottles_available: inventory.bottles_qty || 0,
             validationError: "",
@@ -500,7 +502,7 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
                   </thead>
                   <tbody>
                     {productsToLoad.map((product) => (
-                      <tr 
+                      <tr
                         key={product.product_id}
                         className={`${sizeColors[product.product_size]}`}
                       >
@@ -706,7 +708,6 @@ const AddNewLoadingForm = ({ onLoadingAdded, inventoryData }) => {
                                   "cases_loaded",
                                   e.target.value
                                 )
-                                
                               }
                               onWheel={(e) => e.target.blur()} // Prevent scrolling from changing values
                               className="shadow appearance-none border border-gray-300 rounded w-full py-1 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
