@@ -392,7 +392,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
               </button>
               <button
                 onClick={handleSubmitConfirmed}
-                className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                className="bg-[#0fb493] hover:bg-[#036c57] text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
                 disabled={loading}
               >
                 {loading ? "Processing..." : "Confirm & Submit"}
@@ -642,7 +642,7 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
           <div className="mt-6 flex justify-end">
             <button
               type="submit"
-              className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              className="bg-[#0fb493] hover:bg-[#036c57] text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
               disabled={loading || noActiveLoading}
             >
               {loading ? "Processing..." : "Review Unloading Transaction"}
