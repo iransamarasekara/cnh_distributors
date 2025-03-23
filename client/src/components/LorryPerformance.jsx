@@ -6,6 +6,8 @@ const LorryPerformance = ({
   loadingTransactions,
   unloadingTransactions,
   salesData,
+  expiryReturns,
+  emptyReturns,
   dateRange,
 }) => {
   const [selectedLorry, setSelectedLorry] = useState(lorryData[0]?.lorry_id);
@@ -18,6 +20,10 @@ const LorryPerformance = ({
     totalSoldUnits: 0,
     totalSalesValue: 0,
     totalProfit: 0,
+    totalExpiryBottles: 0,
+    totalExpiryValue: 0,
+    totalEmptyCases: 0,
+    totalEmptyBottles: 0,
   });
 
   // Process data when selected lorry changes or data changes
@@ -52,6 +58,12 @@ const LorryPerformance = ({
         bottles_loaded: 0,
         cases_returned: 0,
         bottles_returned: 0,
+
+        // Initialize expiry and empty returns data
+        expiry_bottles: 0,
+        expiry_value: 0,
+        empty_cases: 0,
+        empty_bottles: 0,
 
         // Initialize sales data (will be updated)
         units_sold: 0,
@@ -100,6 +112,46 @@ const LorryPerformance = ({
         }
       });
 
+    // Process expiry returns for the selected lorry
+    expiryReturns.data
+      .filter((returnItem) => returnItem.lorry_id === Number(selectedLorry))
+      .forEach((returnItem) => {
+        if (
+          returnItem.expiryReturnsDetails &&
+          returnItem.expiryReturnsDetails.length > 0
+        ) {
+          returnItem.expiryReturnsDetails.forEach((detail) => {
+            const productId = detail.product_id;
+
+            if (productMap.has(productId)) {
+              const productData = productMap.get(productId);
+              productData.expiry_bottles += detail.bottles_expired || 0;
+              productData.expiry_value += detail.expiry_value || 0;
+            }
+          });
+        }
+      });
+
+    // Process empty returns for the selected lorry
+    emptyReturns.data
+      .filter((returnItem) => returnItem.lorry_id === Number(selectedLorry))
+      .forEach((returnItem) => {
+        if (
+          returnItem.emptyReturnsDetails &&
+          returnItem.emptyReturnsDetails.length > 0
+        ) {
+          returnItem.emptyReturnsDetails.forEach((detail) => {
+            const productId = detail.product_id;
+
+            if (productMap.has(productId)) {
+              const productData = productMap.get(productId);
+              productData.empty_cases += detail.empty_cases_returned || 0;
+              productData.empty_bottles += detail.empty_bottles_returned || 0;
+            }
+          });
+        }
+      });
+
     // Process sales data for the selected lorry
     salesData
       .filter((saleItem) => saleItem.lorry_id === Number(selectedLorry))
@@ -133,7 +185,10 @@ const LorryPerformance = ({
         item.bottles_loaded > 0 ||
         item.cases_returned > 0 ||
         item.bottles_returned > 0 ||
-        item.units_sold > 0
+        item.units_sold > 0 ||
+        item.expiry_bottles > 0 ||
+        item.empty_bottles > 0 ||
+        item.empty_cases > 0
     );
 
     // Define custom size order
@@ -191,6 +246,10 @@ const LorryPerformance = ({
           totalSoldUnits: acc.totalSoldUnits + item.units_sold,
           totalSalesValue: acc.totalSalesValue + item.sales_value,
           totalProfit: acc.totalProfit + item.gross_profit,
+          totalExpiryBottles: acc.totalExpiryBottles + item.expiry_bottles,
+          totalExpiryValue: acc.totalExpiryValue + item.expiry_value,
+          totalEmptyCases: acc.totalEmptyCases + item.empty_cases,
+          totalEmptyBottles: acc.totalEmptyBottles + item.empty_bottles,
         };
       },
       {
@@ -201,6 +260,10 @@ const LorryPerformance = ({
         totalSoldUnits: 0,
         totalSalesValue: 0,
         totalProfit: 0,
+        totalExpiryBottles: 0,
+        totalExpiryValue: 0,
+        totalEmptyCases: 0,
+        totalEmptyBottles: 0,
       }
     );
 
@@ -212,6 +275,8 @@ const LorryPerformance = ({
     loadingTransactions,
     unloadingTransactions,
     salesData,
+    expiryReturns,
+    emptyReturns,
   ]);
 
   // Print function
@@ -271,6 +336,10 @@ const LorryPerformance = ({
             <th>Bottles Loaded</th>
             <th>Cases Returned</th>
             <th>Bottles Returned</th>
+            <th>Expiry Bottles</th>
+            <th>Expiry Value</th>
+            <th>Empty Cases</th>
+            <th>Empty Bottles</th>
             <th>Units Sold</th>
             <th>Sales Value</th>
             <th>Gross Profit</th>
@@ -293,6 +362,13 @@ const LorryPerformance = ({
           <td class="text-center">${item.bottles_loaded}</td>
           <td class="text-center">${item.cases_returned}</td>
           <td class="text-center">${item.bottles_returned}</td>
+          <td class="text-center">${item.expiry_bottles}</td>
+          <td class="text-right">${item.expiry_value.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}</td>
+          <td class="text-center">${item.empty_cases}</td>
+          <td class="text-center">${item.empty_bottles}</td>
           <td class="text-center">${item.units_sold}</td>
           <td class="text-right">${item.sales_value.toLocaleString(undefined, {
             minimumFractionDigits: 2,
@@ -314,6 +390,16 @@ const LorryPerformance = ({
         <td class="text-center">${totals.totalLoadingBottles}</td>
         <td class="text-center">${totals.totalUnloadingCases}</td>
         <td class="text-center">${totals.totalUnloadingBottles}</td>
+        <td class="text-center">${totals.totalExpiryBottles}</td>
+        <td class="text-right">${totals.totalExpiryValue.toLocaleString(
+          undefined,
+          {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }
+        )}</td>
+        <td class="text-center">${totals.totalEmptyCases}</td>
+        <td class="text-center">${totals.totalEmptyBottles}</td>
         <td class="text-center">${totals.totalSoldUnits}</td>
         <td class="text-right">${totals.totalSalesValue.toLocaleString(
           undefined,
@@ -366,6 +452,10 @@ const LorryPerformance = ({
       "Bottles Loaded",
       "Cases Returned",
       "Bottles Returned",
+      "Expiry Bottles",
+      "Expiry Value",
+      "Empty Cases",
+      "Empty Bottles",
       "Units Sold",
       "Sales Value",
       "Gross Profit",
@@ -387,6 +477,10 @@ const LorryPerformance = ({
         item.bottles_loaded,
         item.cases_returned,
         item.bottles_returned,
+        item.expiry_bottles,
+        item.expiry_value.toFixed(2),
+        item.empty_cases,
+        item.empty_bottles,
         item.units_sold,
         item.sales_value.toFixed(2),
         item.gross_profit.toFixed(2),
@@ -407,6 +501,10 @@ const LorryPerformance = ({
       totals.totalLoadingBottles,
       totals.totalUnloadingCases,
       totals.totalUnloadingBottles,
+      totals.totalExpiryBottles,
+      totals.totalExpiryValue.toFixed(2),
+      totals.totalEmptyCases,
+      totals.totalEmptyBottles,
       totals.totalSoldUnits,
       totals.totalSalesValue.toFixed(2),
       totals.totalProfit.toFixed(2),
@@ -508,6 +606,22 @@ const LorryPerformance = ({
                 Unloading
               </th>
 
+              {/* Expiry Returns */}
+              <th
+                colSpan="2"
+                className="px-2 py-2 bg-red-100 text-center text-xs font-medium text-gray-700 uppercase"
+              >
+                Expiry Returns
+              </th>
+
+              {/* Empty Returns */}
+              <th
+                colSpan="2"
+                className="px-2 py-2 bg-purple-100 text-center text-xs font-medium text-gray-700 uppercase"
+              >
+                Empty Returns
+              </th>
+
               {/* Financial Data */}
               <th
                 colSpan="3"
@@ -554,6 +668,22 @@ const LorryPerformance = ({
               </th>
               <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">
                 Bottles Returned
+              </th>
+
+              {/* Expiry Returns */}
+              <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">
+                Expiry Bottles
+              </th>
+              <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">
+                Expiry Value
+              </th>
+
+              {/* Empty Returns */}
+              <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">
+                Empty Cases
+              </th>
+              <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">
+                Empty Bottles
               </th>
 
               {/* Financial Data */}
@@ -615,6 +745,25 @@ const LorryPerformance = ({
                       {item.bottles_returned}
                     </td>
 
+                    {/* Expiry Returns */}
+                    <td className="px-2 py-2 text-sm text-red-600 font-medium text-center">
+                      {item.expiry_bottles}
+                    </td>
+                    <td className="px-2 py-2 text-sm text-red-600 font-medium text-right">
+                      {item.expiry_value.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </td>
+
+                    {/* Empty Returns */}
+                    <td className="px-2 py-2 text-sm text-purple-600 font-medium text-center">
+                      {item.empty_cases}
+                    </td>
+                    <td className="px-2 py-2 text-sm text-purple-600 font-medium text-center">
+                      {item.empty_bottles}
+                    </td>
+
                     {/* Financial Data */}
                     <td className="px-2 py-2 text-sm text-gray-900 text-center">
                       {item.units_sold}
@@ -636,53 +785,114 @@ const LorryPerformance = ({
               ) : (
                 <tr>
                   <td
-                    colSpan="13"
-                    className="px-6 py-4 text-center text-gray-500"
+                    colSpan="17"
+                    className="px-6 py-4 text-sm text-center text-gray-500"
                   >
-                    No data available for the selected lorry in this time period
+                    No performance data found for this lorry.
                   </td>
                 </tr>
               )
             ) : (
               <tr>
                 <td
-                  colSpan="13"
-                  className="px-6 py-4 text-center text-gray-500"
+                  colSpan="17"
+                  className="px-6 py-4 text-sm text-center text-gray-500"
                 >
-                  Please select a lorry to view performance data
+                  Please select a lorry to view performance data.
                 </td>
               </tr>
             )}
 
             {/* Totals Row */}
-            {selectedLorry && lorryPerformanceData.length > 0 && (
-              <tr className="bg-gray-100 font-bold">
-                <td colSpan="6" className="px-2 py-2 text-right text-sm">
+            {lorryPerformanceData.length > 0 && (
+              <tr className="bg-gray-100 font-medium">
+                <td
+                  colSpan="6"
+                  className="px-2 py-2 text-right text-sm text-gray-900"
+                >
                   Totals:
                 </td>
-                <td className="px-2 py-2 text-sm text-center">
-                  {totals.totalLoadingCases.toLocaleString()}
+                <td className="px-2 py-2 text-sm text-blue-700 text-center">
+                  {totals.totalLoadingCases}
                 </td>
-                <td className="px-2 py-2 text-sm text-center">
-                  {totals.totalLoadingBottles.toLocaleString()}
+                <td className="px-2 py-2 text-sm text-blue-700 text-center">
+                  {totals.totalLoadingBottles}
                 </td>
-                <td className="px-2 py-2 text-sm text-center">
-                  {totals.totalUnloadingCases.toLocaleString()}
+                <td className="px-2 py-2 text-sm text-green-700 text-center">
+                  {totals.totalUnloadingCases}
                 </td>
-                <td className="px-2 py-2 text-sm text-center">
-                  {totals.totalUnloadingBottles.toLocaleString()}
+                <td className="px-2 py-2 text-sm text-green-700 text-center">
+                  {totals.totalUnloadingBottles}
                 </td>
-                <td className="px-2 py-2 text-sm text-center">
-                  {totals.totalSoldUnits.toLocaleString()}
+                <td className="px-2 py-2 text-sm text-red-700 text-center">
+                  {totals.totalExpiryBottles}
                 </td>
-                <td className="px-2 py-2 text-sm text-right">
+                <td className="px-2 py-2 text-sm text-red-700 text-right">
+                  {totals.totalExpiryValue.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </td>
+                <td className="px-2 py-2 text-sm text-purple-700 text-center">
+                  {totals.totalEmptyCases}
+                </td>
+                <td className="px-2 py-2 text-sm text-purple-700 text-center">
+                  {totals.totalEmptyBottles}
+                </td>
+                <td className="px-2 py-2 text-sm text-gray-900 text-center">
+                  {totals.totalSoldUnits}
+                </td>
+                <td className="px-2 py-2 text-sm text-gray-900 text-right">
                   {totals.totalSalesValue.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
                 </td>
-                <td className="px-2 py-2 text-sm text-right">
+                <td className="px-2 py-2 text-sm text-gray-900 text-right">
                   {totals.totalProfit.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </td>
+              </tr>
+            )}
+            {/* Net Income Row (Sales - Expiry) */}
+            {lorryPerformanceData.length > 0 && (
+              <tr className="bg-gray-200 font-medium">
+                <td
+                  colSpan="13"
+                  className="px-2 py-2 text-right text-sm text-gray-900"
+                >
+                  Net Income (Sales - Expiry):
+                </td>
+                <td
+                  colSpan="1"
+                  className="px-2 py-2 text-sm text-red-700 text-right"
+                >
+                  -
+                  {totals.totalExpiryValue.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </td>
+                <td
+                  colSpan="1"
+                  className="px-2 py-2 text-sm text-green-700 text-right"
+                >
+                  +
+                  {totals.totalSalesValue.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </td>
+                <td
+                  colSpan="2"
+                  className="px-2 py-2 text-sm text-gray-900 font-bold text-right"
+                >
+                  ={" "}
+                  {(
+                    totals.totalSalesValue - totals.totalExpiryValue
+                  ).toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -693,20 +903,20 @@ const LorryPerformance = ({
         </table>
       </div>
 
-      {/* Action Buttons */}
-      {selectedLorry && lorryPerformanceData.length > 0 && (
-        <div className="mt-4 flex justify-end">
-          <button
-            onClick={downloadCSV}
-            className="mr-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            Export CSV
-          </button>
+      {/* Export buttons */}
+      {lorryPerformanceData.length > 0 && (
+        <div className="mt-4 flex space-x-4">
           <button
             onClick={handlePrint}
-            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
           >
             Print Report
+          </button>
+          <button
+            onClick={downloadCSV}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+          >
+            Download CSV
           </button>
         </div>
       )}

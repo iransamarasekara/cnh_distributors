@@ -176,6 +176,11 @@ exports.getDailySales = async (req, res) => {
       ],
     });
 
+    // Calculate total gross profit for the period
+    const totalGrossProfit = await DailySales.sum("gross_profit", {
+      where: dateFilter,
+    });
+
     // Transform data to match the format needed in the SummeryOverview component
     const transformedData = salesDetails.map((detail) => ({
       product_id: detail.product_id,
@@ -193,7 +198,10 @@ exports.getDailySales = async (req, res) => {
       selling_price: detail.product.selling_price,
     }));
 
-    res.status(200).json(transformedData);
+    res.status(200).json({
+      salesData: transformedData,
+      totalGrossProfit: totalGrossProfit || 0,
+    });
   } catch (error) {
     console.error("Error fetching daily sales:", error);
     res
