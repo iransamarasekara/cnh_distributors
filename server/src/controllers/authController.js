@@ -36,7 +36,7 @@ exports.login = async (req, res) => {
     const token = jwt.sign(
       { id: user.user_id, username: user.username, role: user.role },
       process.env.JWT_SECRET || "jwtsecretkey",
-      { expiresIn: "24h" }
+      { expiresIn: process.env.JWT_EXPIRES || "6h" }
     );
 
     // Return token and user info (excluding password)
@@ -107,7 +107,7 @@ exports.register = async (req, res) => {
     const token = jwt.sign(
       { id: newUser.user_id, username: newUser.username, role: newUser.role },
       process.env.JWT_SECRET || "jwtsecretkey",
-      { expiresIn: "24h" }
+      { expiresIn: process.env.JWT_EXPIRES || "6h" }
     );
 
     // Return without password
