@@ -7,7 +7,7 @@ const InventoryTable = ({ inventoryData }) => {
         <thead>
           <tr>
             <th
-              colSpan="4"
+              colSpan="3"
               className="px-6 py-3 bg-blue-400 text-white text-center border-2 border-white"
             >
               Product Details
@@ -32,9 +32,9 @@ const InventoryTable = ({ inventoryData }) => {
             </th>
           </tr>
           <tr>
-            <th className="px-6 py-3 bg-blue-400 text-white text-left text-xs font-medium uppercase tracking-wider border-2 border-white">
+            {/* <th className="px-6 py-3 bg-blue-400 text-white text-left text-xs font-medium uppercase tracking-wider border-2 border-white">
               SKU
-            </th>
+            </th> */}
             <th className="px-6 py-3 bg-blue-400 text-white text-left text-xs font-medium uppercase tracking-wider border-2 border-white">
               Size
             </th>
@@ -74,9 +74,9 @@ const InventoryTable = ({ inventoryData }) => {
           {inventoryData.map((item, index) => (
             <>
               <tr className={index % 2 === 0 ? "bg-gray-200" : "bg-blue-100"}>
-                <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
+                {/* <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
                   {item.sku}
-                </td>
+                </td> */}
                 <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-2 border-white">
                   {item.size}
                 </td>
@@ -114,10 +114,13 @@ const InventoryTable = ({ inventoryData }) => {
                   {item.total_bottles.toLocaleString()}
                 </td>
                 <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-900 border-2 border-white text-right">
-                  {item.total_value.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+                  {(item.total_bottles * item.unit_price).toLocaleString(
+                    undefined,
+                    {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }
+                  )}
                 </td>
               </tr>
             </>
@@ -126,7 +129,7 @@ const InventoryTable = ({ inventoryData }) => {
         <tfoot>
           <tr className="bg-blue-200">
             <td
-              colSpan="8"
+              colSpan="7"
               className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-2 border-white text-right"
             >
               Total:
