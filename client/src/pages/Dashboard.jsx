@@ -61,6 +61,8 @@ const Dashboard = () => {
     totalValue: 0,
   });
 
+  const [expiryReturns, setExpiryReturns] = useState([]);
+
   // Helper function to format date range display
   const formatDateRange = () => {
     if (!startDate && !endDate) return "All Time";
@@ -104,10 +106,13 @@ const Dashboard = () => {
         };
 
         // Fetch data using existing API endpoints from InventoryReportsPage
-        const [dailySalesRes, stockInventoryRes] = await Promise.all([
-          axios.get(`${API_URL}/daily-sales`, { params }),
-          axios.get(`${API_URL}/stock-inventory`),
-        ]);
+        const [dailySalesRes, stockInventoryRes, expiryRes] = await Promise.all(
+          [
+            axios.get(`${API_URL}/daily-sales`, { params }),
+            axios.get(`${API_URL}/stock-inventory`),
+            axios.get(`${API_URL}/expiry-returns`, { params }),
+          ]
+        );
 
         // Process sales data for overview metrics
         const salesMetrics = processSalesData(dailySalesRes.data.salesData);
@@ -131,6 +136,9 @@ const Dashboard = () => {
           totalBottles: inventory.totalBottles,
           totalValue: inventory.totalValue,
         });
+
+        // Set expiry returns
+        setExpiryReturns(expiryRes.data);
       } catch (err) {
         setError("Failed to fetch dashboard data: " + err.message);
         console.error(err);
@@ -392,6 +400,25 @@ const Dashboard = () => {
                     </div>
                     <div className="bg-green-300 p-2 rounded-lg">
                       <TrendingUp size={24} className="text-green-700" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expiry Value */}
+                <div className="bg-gradient-to-br from-red-100 to-red-200 p-5 rounded-xl shadow-sm border border-red-200">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-gray-700 font-medium">
+                        Total Expiry Value
+                      </p>
+                      <p className="text-3xl font-bold mt-2">
+                        {formatCurrency(
+                          expiryReturns?.summary?.totalExpiryValue
+                        ).replace("LKR", "")}
+                      </p>
+                    </div>
+                    <div className="bg-red-300 p-2 rounded-lg">
+                      <TrendingUp size={24} className="text-red-700" />
                     </div>
                   </div>
                 </div>
