@@ -248,9 +248,9 @@ const LoadingTable = ({ selectedLorry, dateRange }) => {
                     <th className="py-2 px-4 border-b text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total Bottles
                     </th>
-                    <th className="py-2 px-4 border-b text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {/* <th className="py-2 px-4 border-b text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Inventory Value
-                    </th>
+                    </th> */}
                     <th className="py-2 px-4 border-b text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Sales Value
                     </th>
@@ -283,12 +283,12 @@ const LoadingTable = ({ selectedLorry, dateRange }) => {
                         <td className="py-2 px-4 text-sm text-gray-900 text-center">
                           {detail.total_bottles_loaded}
                         </td>
-                        <td className="py-2 px-4 text-sm text-gray-900 text-right">
+                        {/* <td className="py-2 px-4 text-sm text-gray-900 text-right">
                           {detail.value.toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}
-                        </td>
+                        </td> */}
                         <td className="py-2 px-4 text-sm text-gray-900 text-right">
                           {(
                             detail.total_bottles_loaded *
@@ -329,7 +329,7 @@ const LoadingTable = ({ selectedLorry, dateRange }) => {
                         )
                         .toLocaleString()}
                     </td>
-                    <td className="py-2 px-4 text-sm font-semibold text-gray-900 text-right">
+                    {/* <td className="py-2 px-4 text-sm font-semibold text-gray-900 text-right">
                       LKR&nbsp;
                       {loadingDetails
                         .reduce((sum, detail) => sum + detail.value, 0)
@@ -337,7 +337,7 @@ const LoadingTable = ({ selectedLorry, dateRange }) => {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
-                    </td>
+                    </td> */}
                     <td className="py-2 px-4 text-sm font-semibold text-gray-900 text-right">
                       LKR&nbsp;
                       {loadingDetails
