@@ -48,7 +48,9 @@ const InventoryReportsPage = () => {
         // Prepare date params
         const params = {
           startDate: dateRange?.startDate?.toISOString().split("T")[0],
-          endDate: dateRange?.endDate?.toISOString().split("T")[0],
+          endDate:
+            dateRange?.endDate?.toISOString().split("T")[0] ||
+            new Date().toISOString().split("T")[0],
         };
 
         // Fetch all data in parallel

@@ -14,6 +14,7 @@ import ManagementPage from "./pages/ManagementPage";
 import DiscountPage from "./pages/DiscountManagementPage";
 import DiscountManagementPage from "./pages/DiscountManagementPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
+import LoadingComponent from "./components/LoadingComponent";
 
 const AppLayout = ({ children }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -27,6 +28,7 @@ const AppLayout = ({ children }) => {
 
   return (
     <div className="flex h-screen bg-blue-1 relative">
+      <LoadingComponent />
       {isAdmin && (
         <Sidebar
           isCollapsed={isSidebarCollapsed}

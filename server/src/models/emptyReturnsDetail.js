@@ -4,13 +4,14 @@ const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   class EmptyReturnsDetail extends Model {
     static associate(models) {
-      // UnloadingDetail belongs to one UnloadingTransaction
+      // EmptyReturnsDetail belongs to one EmptyReturn
       EmptyReturnsDetail.belongsTo(models.EmptyReturn, {
         foreignKey: "empty_return_id",
         as: "emptyReturn",
+        onDelete: "CASCADE",
       });
 
-      // UnloadingDetail belongs to one Product
+      // EmptyReturnsDetail belongs to one Product
       EmptyReturnsDetail.belongsTo(models.Product, {
         foreignKey: "product_id",
         as: "product",

@@ -70,11 +70,15 @@ const Header = () => {
   return (
     <header className="bg-white py-[10px] px-4 shadow-sm">
       <div className="flex items-center justify-between">
-      <div className="flex items-center space-x-3">
-          <img src={logo} alt="ZENDEN Logo" className="h-14 w-14"  />
+        <div className="flex items-center space-x-3">
+          <img src={logo} alt="ZENDEN Logo" className="h-14 w-14" />
           <div>
-            <h1 className="text-2xl font-bold text-blue-400">ZENDEN</h1>
-            <p className="text-xs text-blue-400 tracking-widest">DIGITAL SOLUTIONS</p>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-[#0d8ed6] to-[#0fb493] text-transparent bg-clip-text">
+              ZENDEN
+            </h1>
+            <p className="text-xs bg-gradient-to-r from-[#0d8ed6] to-[#0fb493] text-transparent bg-clip-text tracking-widest">
+              DIGITAL SOLUTIONS
+            </p>
           </div>
         </div>
         <div className="relative flex-1 max-w-sm mx-auto">
@@ -102,7 +106,7 @@ const Header = () => {
         <div className="flex items-center space-x-4 ml-4">
           <div className="relative" ref={menuRef}>
             <button
-              className="flex items-center px-4 py-[6px] bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md text-sm font-medium shadow-sm hover:from-blue-600 hover:to-blue-700 hover:shadow-md"
+              className="flex items-center px-4 py-[6px] bg-gradient-to-r from-[#0fb493] to-[#036c57] text-white rounded-md text-sm font-medium shadow-sm hover:from-[#036c57] hover:to-[#036c57] hover:shadow-md"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               <span className="mr-1 text-lg font-bold">+</span>
@@ -110,7 +114,7 @@ const Header = () => {
             </button>
             {isMenuOpen && (
               <div className="absolute right-0 mt-3 w-72 bg-white rounded-lg shadow-xl z-10 overflow-hidden border border-gray-100 transform transition-all duration-200">
-                <div className="px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600">
+                <div className="px-4 py-3 bg-gradient-to-r from-[#0fb493] to-[#036c57]">
                   <h3 className="text-sm font-bold text-white">
                     Quick Navigation
                   </h3>
@@ -138,7 +142,7 @@ const Header = () => {
                 </div>
                 <div className="px-4 py-2 bg-gray-50">
                   <button
-                    className="w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium py-1"
+                    className="w-full text-center text-sm text-[#0fb493] hover:text-[#036c57] font-medium py-1"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Close Menu
