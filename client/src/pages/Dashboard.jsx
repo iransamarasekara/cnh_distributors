@@ -102,7 +102,9 @@ const Dashboard = () => {
         // Prepare date params
         const params = {
           startDate: startDate?.toISOString().split("T")[0],
-          endDate: endDate?.toISOString().split("T")[0],
+          endDate:
+            endDate?.toISOString().split("T")[0] ||
+            new Date().toISOString().split("T")[0],
         };
 
         // Fetch data using existing API endpoints from InventoryReportsPage
