@@ -6,7 +6,7 @@ const ReportsOverview = ({
   loadingTransactions,
   unloadingTransactions,
   salesData,
-  totalGrossProfit,
+  expiryReturns,
   stockData,
   dateRange,
 }) => {
@@ -648,18 +648,65 @@ const ReportsOverview = ({
                 </td>
               </tr>
             )}
+            {consolidatedData.length > 0 && (
+              <tr className="bg-yellow-50 font-bold">
+                <td
+                  colSpan={12 + lorryIds.length * 4}
+                  className="px-2 py-2 text-right text-sm"
+                >
+                  Total Expiry Value:
+                </td>
+                <td className="px-2 pr-4 py-2 text-sm text-red-600 text-right">
+                  {expiryReturns?.summary?.totalExpiryValue?.toLocaleString(
+                    undefined,
+                    {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }
+                  ) || "0.00"}
+                </td>
+              </tr>
+            )}
+            {consolidatedData.length > 0 && (
+              <tr className="bg-green-50 font-bold">
+                <td
+                  colSpan={12 + lorryIds.length * 4}
+                  className="px-2 py-2 text-right text-sm"
+                >
+                  Net Sales Income (after Expiry):
+                </td>
+                <td className="px-2 pr-4 py-2 text-sm text-green-700 text-right">
+                  {(
+                    consolidatedData.reduce(
+                      (total, item) => total + item.sale_income,
+                      0
+                    ) - (expiryReturns?.summary?.totalExpiryValue || 0)
+                  ).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </td>
+              </tr>
+            )}
+            {/* {consolidatedData.length > 0 && (
+              <tr className="bg-blue-50 font-bold">
+                <td
+                  colSpan={12 + lorryIds.length * 4}
+                  className="px-2 py-2 text-right text-sm"
+                >
+                  Net Sales Income:
+                </td>
+                <td className="px-2 pr-4 py-2 text-sm text-blue-700 text-right">
+                  {totalGrossProfit.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </td>
+              </tr>
+            )} */}
           </tbody>
         </table>
       </div>
-      <p className="text-sm text-gray-600 mt-2 mr-4 text-right">
-        Total Gross Profit with Expiry and Breakage:{" "}
-        <span className="font-bold">
-          {totalGrossProfit.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
-        </span>
-      </p>
       <div className="mt-4 flex justify-end">
         <button
           onClick={downloadCSV}

@@ -24,6 +24,8 @@ const InventoryReportsPage = () => {
   const [unloadingTransactions, setUnloadingTransactions] = useState([]);
   const [salesData, setSalesData] = useState([]);
   const [totalGrossProfit, setTotalGrossProfit] = useState(0);
+  const [expiryReturns, setExpiryReturns] = useState([]);
+  const [emptyReturns, setEmptyReturns] = useState([]);
   const [stockData, setStockData] = useState([]);
 
   const tabs = ["ReportsOverview", "LorryPerformance"];
@@ -46,7 +48,9 @@ const InventoryReportsPage = () => {
         // Prepare date params
         const params = {
           startDate: dateRange?.startDate?.toISOString().split("T")[0],
-          endDate: dateRange?.endDate?.toISOString().split("T")[0],
+          endDate:
+            dateRange?.endDate?.toISOString().split("T")[0] ||
+            new Date().toISOString().split("T")[0],
         };
 
         // Fetch all data in parallel
@@ -57,6 +61,8 @@ const InventoryReportsPage = () => {
           unloadingRes,
           salesRes,
           stockRes,
+          expiryRes,
+          emptyRes,
         ] = await Promise.all([
           axios.get(`${API_URL}/products`),
           axios.get(`${API_URL}/lorries`),
@@ -64,6 +70,8 @@ const InventoryReportsPage = () => {
           axios.get(`${API_URL}/unloading-transactions`, { params }),
           axios.get(`${API_URL}/daily-sales`, { params }),
           axios.get(`${API_URL}/stock-inventory`),
+          axios.get(`${API_URL}/expiry-returns`, { params }),
+          axios.get(`${API_URL}/empty-returns`, { params }),
         ]);
 
         setProducts(productsRes.data);
@@ -73,6 +81,8 @@ const InventoryReportsPage = () => {
         setSalesData(salesRes.data.salesData);
         setTotalGrossProfit(salesRes.data.totalGrossProfit);
         setStockData(stockRes.data);
+        setEmptyReturns(emptyRes.data);
+        setExpiryReturns(expiryRes.data);
       } catch (err) {
         setError("Failed to fetch data: " + err.message);
         console.error(err);
@@ -94,6 +104,8 @@ const InventoryReportsPage = () => {
       unloadingTransactions,
       salesData,
       totalGrossProfit,
+      expiryReturns,
+      emptyReturns,
       stockData,
       isLoading,
       error,

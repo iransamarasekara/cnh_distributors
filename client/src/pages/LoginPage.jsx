@@ -11,8 +11,12 @@ const LoginPage = () => {
           <div className="flex items-center justify-center gap-4 mb-2">
             <img src={logo} alt="Zenden Logo" className="w-20 h-20" />
             <div className="text-left">
-              <h1 className="text-4xl font-bold text-blue-400">ZENDEN</h1>
-              <p className="text-blue-400 font-medium text-xs tracking-widest">DIGITAL SOLUTIONS</p>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-[#0d8ed6] to-[#0fb493] text-transparent bg-clip-text">
+                ZENDEN
+              </h1>
+              <p className="bg-gradient-to-r from-[#0d8ed6] to-[#0fb493] text-transparent bg-clip-text font-medium text-xs tracking-widest">
+                DIGITAL SOLUTIONS
+              </p>
             </div>
           </div>
           <p className="text-gray-600 mb-24">Inventory Management System</p>
