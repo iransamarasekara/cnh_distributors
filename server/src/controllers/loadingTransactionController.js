@@ -456,7 +456,7 @@ exports.getRecentLoadingTransactions = async (req, res) => {
         ["loading_date", "DESC"],
         ["loading_time", "DESC"],
       ],
-      limit: parseInt(limit),
+      // limit: parseInt(limit),
     });
 
     // Calculate summary information for each transaction

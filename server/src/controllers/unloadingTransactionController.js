@@ -833,7 +833,7 @@ exports.getRecentUnloadingTransactions = async (req, res) => {
         ["unloading_date", "DESC"],
         ["unloading_time", "DESC"],
       ],
-      limit: parseInt(limit),
+      // limit: parseInt(limit),
     });
 
     // Calculate summary information for each transaction
