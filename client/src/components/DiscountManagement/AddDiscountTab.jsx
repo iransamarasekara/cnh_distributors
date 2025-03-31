@@ -6,39 +6,37 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
   const [selectedLorry, setSelectedLorry] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [discountedCases, setDiscountedCases] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [selectedShop, setSelectedShop] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState("");
   const [selectedSubDiscountType, setSelectedSubDiscountType] = useState("");
+  const [currentCases, setCurrentCases] = useState("");
   const [status, setStatus] = useState({ type: "", message: "" });
   const [maxDiscountedCases, setMaxDiscountedCases] = useState(0);
-  const [products, setProducts] = useState([]);
   const [subDiscountTypes, setSubDiscountTypes] = useState([]);
   const [filteredSubDiscountTypes, setFilteredSubDiscountTypes] = useState([]);
   const [selectedShopType, setSelectedShopType] = useState("");
+  const [addedDiscounts, setAddedDiscounts] = useState([]);
+  const [totalDiscountedCases, setTotalDiscountedCases] = useState(0);
 
   // Reset form
   const resetForm = () => {
     setSelectedLorry("");
     setInvoiceNumber("");
-    setDiscountedCases("");
     setSelectedDate("");
     setSelectedTime("");
     setSelectedShop("");
-    setSelectedProduct("");
     setSelectedSubDiscountType("");
+    setCurrentCases("");
     setSelectedShopType("");
+    setAddedDiscounts([]);
+    setTotalDiscountedCases(0);
   };
 
-  // Fetch products and sub discount types when component mounts
+  // Fetch sub discount types when component mounts
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const productsResponse = await axios.get(`${API_URL}/products`);
-        setProducts(productsResponse.data);
-
         const discountTypesResponse = await axios.get(
           `${API_URL}/sub-discount-types`
         );
@@ -57,6 +55,8 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
       setMaxDiscountedCases(0);
       setSelectedShopType("");
       setFilteredSubDiscountTypes([]);
+      setAddedDiscounts([]);
+      setTotalDiscountedCases(0);
       return;
     }
 
@@ -72,6 +72,8 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
 
           // Reset selected sub discount type when shop changes
           setSelectedSubDiscountType("");
+          setAddedDiscounts([]);
+          setTotalDiscountedCases(0);
         }
       } catch (err) {
         console.error("Failed to fetch shop details:", err);
@@ -90,7 +92,7 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
 
     let filtered = [];
     if (selectedShopType === "SSG") {
-      // For SSG shop type, show type-1 and type-2
+      // For SSG shop type, show specific types
       filtered = subDiscountTypes.filter(
         (type) =>
           type.sub_discount_type === "ALL WO MPET" ||
@@ -98,7 +100,7 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
           type.sub_discount_type === "MPET (SSG)"
       );
     } else if (selectedShopType === "SPC") {
-      // For SPC shop type, show type-3 and type-4
+      // For SPC shop type, show specific types
       filtered = subDiscountTypes.filter(
         (type) =>
           type.sub_discount_type === "RGB" ||
@@ -110,6 +112,95 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
     setFilteredSubDiscountTypes(filtered);
   }, [selectedShopType, subDiscountTypes]);
 
+  // Add current discount type and cases to the list
+  const addDiscountItem = () => {
+    // Validation
+    if (!selectedSubDiscountType || !currentCases) {
+      setStatus({
+        type: "error",
+        message: "Please select a discount type and enter cases",
+      });
+      return;
+    }
+
+    const casesNum = parseInt(currentCases, 10);
+    if (casesNum <= 0) {
+      setStatus({
+        type: "error",
+        message: "Cases must be greater than zero",
+      });
+      return;
+    }
+
+    // Check if adding these cases exceeds the maximum
+    const newTotalCases = totalDiscountedCases + casesNum;
+    if (newTotalCases > maxDiscountedCases) {
+      setStatus({
+        type: "error",
+        message: `Adding ${casesNum} cases would exceed maximum allowed (${maxDiscountedCases})`,
+      });
+      return;
+    }
+
+    // Find the selected discount type details
+    const discountType = subDiscountTypes.find(
+      (type) => type.sub_discount_type_id === selectedSubDiscountType
+    );
+
+    if (!discountType) {
+      setStatus({
+        type: "error",
+        message: "Selected discount type not found",
+      });
+      return;
+    }
+
+    // Check if this discount type is already added
+    const existingIndex = addedDiscounts.findIndex(
+      (item) => item.sub_discount_type_id === selectedSubDiscountType
+    );
+
+    if (existingIndex >= 0) {
+      // Update existing entry
+      const updatedDiscounts = [...addedDiscounts];
+      updatedDiscounts[existingIndex].discounted_cases = casesNum;
+      setAddedDiscounts(updatedDiscounts);
+      
+      // Recalculate total cases
+      const newTotal = updatedDiscounts.reduce(
+        (sum, item) => sum + item.discounted_cases,
+        0
+      );
+      setTotalDiscountedCases(newTotal);
+    } else {
+      // Add new entry
+      const newDiscount = {
+        sub_discount_type_id: selectedSubDiscountType,
+        sub_discount_type: discountType.sub_discount_type,
+        discount_amount: discountType.discount_amount,
+        discounted_cases: casesNum,
+      };
+
+      setAddedDiscounts([...addedDiscounts, newDiscount]);
+      setTotalDiscountedCases(newTotalCases);
+    }
+
+    // Clear the inputs for next entry
+    setSelectedSubDiscountType("");
+    setCurrentCases("");
+    setStatus({ type: "", message: "" });
+  };
+
+  // Remove a discount item
+  const removeDiscountItem = (index) => {
+    const updatedDiscounts = [...addedDiscounts];
+    const removedCases = updatedDiscounts[index].discounted_cases;
+    updatedDiscounts.splice(index, 1);
+    
+    setAddedDiscounts(updatedDiscounts);
+    setTotalDiscountedCases(totalDiscountedCases - removedCases);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -117,61 +208,52 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
     if (
       !selectedLorry ||
       !invoiceNumber ||
-      !discountedCases ||
       !selectedDate ||
       !selectedTime ||
       !selectedShop ||
-      !selectedProduct ||
-      !selectedSubDiscountType
+      addedDiscounts.length === 0
     ) {
       setStatus({
         type: "error",
-        message: "Please fill in all required fields.",
+        message: "Please fill in all required fields and add at least one discount",
       });
       return;
     }
 
-    const discountedCasesNum = parseInt(discountedCases, 10);
-
-    if (discountedCasesNum <= 0) {
-      setStatus({
-        type: "error",
-        message: "Discounted cases must be greater than zero.",
-      });
-      return;
-    }
-
-    if (discountedCasesNum > maxDiscountedCases) {
-      setStatus({
-        type: "error",
-        message: `Discounted cases exceed maximum allowed (${maxDiscountedCases}).`,
-      });
-      return;
-    }
-
-    const discountData = {
+    // Prepare an array of discount data objects
+    const discountDataArray = addedDiscounts.map(discount => ({
       shop_id: selectedShop,
       lorry_id: selectedLorry,
       selling_date: `${selectedDate}T${selectedTime}`,
-      sub_discount_type_id: selectedSubDiscountType,
-      discounted_cases: discountedCasesNum,
-      product_id: selectedProduct,
+      sub_discount_type_id: discount.sub_discount_type_id,
+      discounted_cases: discount.discounted_cases,
       invoice_number: invoiceNumber,
-    };
+    }));
 
-    const result = await onAddDiscount(discountData);
+    try {
+      // Call the provided onAddDiscount function for each discount item
+      for (const discountData of discountDataArray) {
+        const result = await onAddDiscount(discountData);
+        if (!result.success) {
+          setStatus({
+            type: "error",
+            message: result.error || "Failed to add some discounts",
+          });
+          return;
+        }
+      }
 
-    if (result.success) {
       setStatus({
         type: "success",
-        message: "Discount added successfully!",
+        message: "All discounts added successfully!",
       });
       resetForm();
-    } else {
+    } catch (error) {
       setStatus({
         type: "error",
-        message: result.error || "Failed to add discount.",
+        message: "An error occurred while adding discounts",
       });
+      console.error("Error submitting discounts:", error);
     }
   };
 
@@ -223,6 +305,14 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
                 <span>Maximum Discounted Cases:</span>
                 <span className="font-medium">{maxDiscountedCases}</span>
               </div>
+              <div className="flex justify-between mt-1">
+                <span>Total Cases Added:</span>
+                <span className="font-medium">{totalDiscountedCases}</span>
+              </div>
+              <div className="flex justify-between mt-1">
+                <span>Cases Remaining:</span>
+                <span className="font-medium">{maxDiscountedCases - totalDiscountedCases}</span>
+              </div>
               {selectedShopType && (
                 <div className="flex justify-between mt-1">
                   <span>Discount Type:</span>
@@ -255,63 +345,6 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
               </option>
             ))}
           </select>
-        </div>
-
-        {/* Product Selection */}
-        <div className="mb-4">
-          <label
-            htmlFor="product"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Select Product
-          </label>
-          <select
-            id="product"
-            value={selectedProduct}
-            onChange={(e) => setSelectedProduct(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            required
-          >
-            <option value="">Select a product</option>
-            {products.map((product) => (
-              <option key={product.product_id} value={product.product_id}>
-                {product.product_name} - {product.size}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Discount Type Selection */}
-        <div className="mb-4">
-          <label
-            htmlFor="discountType"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Select Discount Type
-          </label>
-          <select
-            id="discountType"
-            value={selectedSubDiscountType}
-            onChange={(e) => setSelectedSubDiscountType(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            required
-            disabled={!selectedShopType}
-          >
-            <option value="">Select a discount type</option>
-            {filteredSubDiscountTypes.map((type) => (
-              <option
-                key={type.sub_discount_type_id}
-                value={type.sub_discount_type_id}
-              >
-                {type.sub_discount_type} (LKR {type.discount_amount} per case)
-              </option>
-            ))}
-          </select>
-          {selectedShop && filteredSubDiscountTypes.length === 0 && (
-            <p className="mt-1 text-sm text-gray-500">
-              Please select a shop first to see available discount types
-            </p>
-          )}
         </div>
 
         {/* Date & Time */}
@@ -368,30 +401,142 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
           />
         </div>
 
-        {/* Discounted Cases */}
-        <div className="mb-6">
-          <label
-            htmlFor="cases"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Discounted Cases
-          </label>
-          <input
-            type="number"
-            id="cases"
-            min="1"
-            step="1"
-            value={discountedCases}
-            onChange={(e) => setDiscountedCases(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            required
-          />
-        </div>
+        {/* Discount Type and Cases Selection */}
+        {selectedShopType && (
+          <div className="mb-4 border border-gray-200 rounded-md p-4 bg-gray-50">
+            <h3 className="font-medium mb-3">Add Discount Items</h3>
+            <div className="flex gap-3 mb-3">
+              <div className="flex-grow">
+                <label
+                  htmlFor="discountType"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Discount Type
+                </label>
+                <select
+                  id="discountType"
+                  value={selectedSubDiscountType}
+                  onChange={(e) => setSelectedSubDiscountType(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select a discount type</option>
+                  {filteredSubDiscountTypes.map((type) => (
+                    <option
+                      key={type.sub_discount_type_id}
+                      value={type.sub_discount_type_id}
+                    >
+                      {type.sub_discount_type} (LKR {type.discount_amount} per case)
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="w-32">
+                <label
+                  htmlFor="cases"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Cases
+                </label>
+                <input
+                  type="number"
+                  id="cases"
+                  min="1"
+                  step="1"
+                  value={currentCases}
+                  onChange={(e) => setCurrentCases(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div className="self-end mb-1">
+                <button
+                  type="button"
+                  onClick={addDiscountItem}
+                  className="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+
+            {/* Added Discount Items */}
+            {addedDiscounts.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium mb-2">Added Discount Items:</h4>
+                <div className="border rounded-md overflow-hidden">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                          Discount Type
+                        </th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                          Amount
+                        </th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                          Cases
+                        </th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                          Total
+                        </th>
+                        <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">
+                          Action
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {addedDiscounts.map((item, index) => (
+                        <tr key={index}>
+                          <td className="px-4 py-2 text-sm text-gray-900">
+                            {item.sub_discount_type}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-900 text-right">
+                            LKR {item.discount_amount}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-900 text-right">
+                            {item.discounted_cases}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-gray-900 text-right">
+                            LKR {item.discount_amount * item.discounted_cases}
+                          </td>
+                          <td className="px-4 py-2 text-right">
+                            <button
+                              type="button"
+                              onClick={() => removeDiscountItem(index)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      <tr className="bg-gray-50">
+                        <td className="px-4 py-2 text-sm font-medium" colSpan="2">
+                          Total
+                        </td>
+                        <td className="px-4 py-2 text-sm font-medium text-right">
+                          {totalDiscountedCases}
+                        </td>
+                        <td className="px-4 py-2 text-sm font-medium text-right">
+                          LKR {addedDiscounts.reduce(
+                            (sum, item) => sum + (item.discount_amount * item.discounted_cases),
+                            0
+                          )}
+                        </td>
+                        <td></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div>
           <button
             type="submit"
             className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            disabled={addedDiscounts.length === 0}
           >
             Add Discount
           </button>

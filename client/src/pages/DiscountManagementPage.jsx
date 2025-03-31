@@ -145,9 +145,8 @@ const DiscountManagementPage = () => {
 
       {isLoading ? (
         <div className="text-center py-6">Loading data...</div>
-      ) : error ? (
-        <div className="text-center py-6 text-red-500">{error}</div>
-      ) : (
+      ) : 
+       (
         <div className="mt-6">
           {activeTab === "Overview" && (
             <OverviewTab shops={shops} discounts={discounts} />

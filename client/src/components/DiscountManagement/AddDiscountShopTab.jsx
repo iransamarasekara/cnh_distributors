@@ -3,14 +3,14 @@ import React, { useState } from "react";
 const AddDiscountShopTab = ({ onAddShop }) => {
   const [shopName, setShopName] = useState("");
   const [discountType, setDiscountType] = useState("SSG");
-  const [maxDiscountedCases, setMaxDiscountedCases] = useState(0);
+  // const [maxDiscountedCases, setMaxDiscountedCases] = useState(0);
   const [status, setStatus] = useState({ type: "", message: "" });
 
   // Reset form
   const resetForm = () => {
     setShopName("");
     setDiscountType("SSG");
-    setMaxDiscountedCases(0);
+    // setMaxDiscountedCases(0);
   };
 
   const handleSubmit = async (e) => {
@@ -26,19 +26,19 @@ const AddDiscountShopTab = ({ onAddShop }) => {
     }
 
     // Convert maxDiscountedCases to number
-    const maxCases = parseInt(maxDiscountedCases, 10);
-    if (isNaN(maxCases) || maxCases < 0) {
-      setStatus({
-        type: "error",
-        message: "Please enter a valid number for max discounted cases.",
-      });
-      return;
-    }
+    // const maxCases = parseInt(maxDiscountedCases, 10);
+    // if (isNaN(maxCases) || maxCases < 0) {
+    //   setStatus({
+    //     type: "error",
+    //     message: "Please enter a valid number for max discounted cases.",
+    //   });
+    //   return;
+    // }
 
     const shopData = {
       shop_name: shopName.trim(),
       discount_type: discountType,
-      max_discounted_cases: maxCases,
+      // max_discounted_cases: maxCases,
     };
 
     const result = await onAddShop(shopData);
@@ -126,7 +126,7 @@ const AddDiscountShopTab = ({ onAddShop }) => {
           </div>
         </div>
 
-        {/* Max Discounted Cases */}
+        {/* Max Discounted Cases
         <div className="mb-6">
           <label
             htmlFor="maxDiscountedCases"
@@ -143,7 +143,7 @@ const AddDiscountShopTab = ({ onAddShop }) => {
             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             required
           />
-        </div>
+        </div> */}
 
         {/* Submit Button */}
         <button
