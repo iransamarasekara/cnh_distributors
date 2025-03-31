@@ -28,10 +28,9 @@ exports.getShopById = async (req, res) => {
 
 exports.createShop = async (req, res) => {
   try {
-    const { shop_name, discount_type, max_discounted_cases } = req.body;
+    const { shop_name, max_discounted_cases } = req.body;
     const newShop = await Shop.create({
       shop_name,
-      discount_type,
       max_discounted_cases,
     });
     res.status(201).json(newShop);
@@ -76,10 +75,10 @@ exports.deleteShop = async (req, res) => {
   }
 };
 
-// Set discount for a shop - used by handleSetDiscount in the frontend
-exports.setShopDiscount = async (req, res) => {
+// Set max discounted cases for a shop
+exports.setShopMaxDiscountedCases = async (req, res) => {
   try {
-    const { shop_id, discount_type, max_discounted_cases } = req.body;
+    const { shop_id, max_discounted_cases } = req.body;
 
     const shop = await Shop.findOne({
       where: { shop_id },
@@ -92,7 +91,7 @@ exports.setShopDiscount = async (req, res) => {
     }
 
     const [updated] = await Shop.update(
-      { discount_type, max_discounted_cases },
+      { max_discounted_cases },
       { where: { shop_id } }
     );
 
@@ -103,7 +102,7 @@ exports.setShopDiscount = async (req, res) => {
       return res.status(200).json(updatedShop);
     }
 
-    throw new Error("Failed to update shop discount");
+    throw new Error("Failed to update shop maximum discounted cases");
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }

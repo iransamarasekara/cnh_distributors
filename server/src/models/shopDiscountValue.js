@@ -2,31 +2,25 @@
 const { Model } = require("sequelize");
 
 module.exports = (sequelize, DataTypes) => {
-  class Discount extends Model {
+  class ShopDiscountValue extends Model {
     static associate(models) {
-      // Discount belongs to Shop
-      Discount.belongsTo(models.Shop, {
+      // ShopDiscountValue belongs to Shop
+      ShopDiscountValue.belongsTo(models.Shop, {
         foreignKey: "shop_id",
         as: "shop",
       });
 
-      // Discount belongs to Lorry
-      Discount.belongsTo(models.Lorry, {
-        foreignKey: "lorry_id",
-        as: "lorry",
-      });
-
-      // Discount belongs to SubDiscountType
-      Discount.belongsTo(models.SubDiscountType, {
+      // ShopDiscountValue belongs to SubDiscountType
+      ShopDiscountValue.belongsTo(models.SubDiscountType, {
         foreignKey: "sub_discount_type_id",
         as: "subDiscountType",
       });
     }
   }
 
-  Discount.init(
+  ShopDiscountValue.init(
     {
-      discount_id: {
+      shop_discount_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
         autoIncrement: true,
@@ -40,18 +34,6 @@ module.exports = (sequelize, DataTypes) => {
           key: "shop_id",
         },
       },
-      selling_date: {
-        type: DataTypes.DATE,
-        allowNull: false,
-      },
-      lorry_id: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-          model: "Lorries",
-          key: "lorry_id",
-        },
-      },
       sub_discount_type_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
@@ -60,27 +42,19 @@ module.exports = (sequelize, DataTypes) => {
           key: "sub_discount_type_id",
         },
       },
-      discounted_cases: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-      invoice_number: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      total_discount: {
+      discount_value: {
         type: DataTypes.FLOAT,
         allowNull: false,
       },
     },
     {
       sequelize,
-      modelName: "Discount",
-      tableName: "Discounts",
+      modelName: "ShopDiscountValue",
+      tableName: "ShopDiscountValues",
       timestamps: true,
       underscored: true,
     }
   );
 
-  return Discount;
+  return ShopDiscountValue;
 };
