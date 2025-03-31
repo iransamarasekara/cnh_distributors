@@ -3,25 +3,37 @@ import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
+// Sub-discount types mapping based on shop type
+const SUB_DISCOUNT_TYPES = {
+  SSG: ["ALL WO MPET", "ALL MPET", "MPET"],
+  SPC: ["RGB", "MPET", "LPET"]
+};
+
 const SetDiscountTab = ({ shops, onSetDiscount }) => {
   const [selectedShop, setSelectedShop] = useState("");
-  const [discountLimit, setDiscountLimit] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState({ type: "", message: "" });
   const [shopDetails, setShopDetails] = useState(null);
+  const [maxDiscountedCases, setMaxDiscountedCases] = useState("");
+  
+  // State for sub-discount types and their values
+  const [subDiscountValues, setSubDiscountValues] = useState({});
+  const [availableSubDiscounts, setAvailableSubDiscounts] = useState([]);
 
   // Reset form
   const resetForm = () => {
-    setDiscountLimit("");
+    setSubDiscountValues({});
     setStartDate("");
     setEndDate("");
+    setMaxDiscountedCases("");
   };
 
-  // Fetch shop details when shop selection changes
+  // Fetch shop details and set appropriate sub-discount types
   useEffect(() => {
     if (!selectedShop) {
       setShopDetails(null);
+      setAvailableSubDiscounts([]);
       return;
     }
 
@@ -29,16 +41,35 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
       try {
         const response = await axios.get(`${API_URL}/shops/${selectedShop}`);
         setShopDetails(response.data);
+        
+        // Set sub-discount types based on shop type
+        const shopType = response.data.type;
+        if (shopType === "SSG" || shopType === "SPC") {
+          const subTypes = SUB_DISCOUNT_TYPES[shopType] || [];
+          setAvailableSubDiscounts(subTypes);
+          
+          // Initialize sub-discount values
+          const initialValues = {};
+          subTypes.forEach(type => {
+            initialValues[type] = "";
+          });
+          setSubDiscountValues(initialValues);
+        }
 
         // Pre-fill existing values if available
-        if (response.data.discountLimit) {
-          setDiscountLimit(response.data.discountLimit);
+        if (response.data.maxDiscountedCases) {
+          setMaxDiscountedCases(response.data.maxDiscountedCases);
         }
         if (response.data.discountStartDate) {
           setStartDate(response.data.discountStartDate.split("T")[0]);
         }
         if (response.data.discountEndDate) {
           setEndDate(response.data.discountEndDate.split("T")[0]);
+        }
+        
+        // Pre-fill sub-discount values if available
+        if (response.data.discountValues) {
+          setSubDiscountValues({...initialValues, ...response.data.discountValues});
         }
       } catch (err) {
         console.error("Failed to fetch shop details:", err);
@@ -52,11 +83,19 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
     fetchShopDetails();
   }, [selectedShop]);
 
+  // Handle changes to sub-discount values
+  const handleSubDiscountChange = (type, value) => {
+    setSubDiscountValues(prev => ({
+      ...prev,
+      [type]: value
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Validation
-    if (!selectedShop || !discountLimit || !startDate || !endDate) {
+    if (!selectedShop || !startDate || !endDate || !maxDiscountedCases) {
       setStatus({
         type: "error",
         message: "Please fill in all required fields.",
@@ -64,10 +103,35 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
       return;
     }
 
-    if (parseFloat(discountLimit) <= 0) {
+    // Validate sub-discount values
+    let hasEmptyDiscounts = false;
+    for (const type of availableSubDiscounts) {
+      if (!subDiscountValues[type]) {
+        hasEmptyDiscounts = true;
+        break;
+      }
+
+      if (parseFloat(subDiscountValues[type]) <= 0) {
+        setStatus({
+          type: "error",
+          message: `Discount value for ${type} must be greater than zero.`,
+        });
+        return;
+      }
+    }
+
+    if (hasEmptyDiscounts) {
       setStatus({
         type: "error",
-        message: "Discount limit must be greater than zero.",
+        message: "Please enter discount values for all sub-discount types.",
+      });
+      return;
+    }
+
+    if (parseInt(maxDiscountedCases) <= 0) {
+      setStatus({
+        type: "error",
+        message: "Max discounted cases must be greater than zero.",
       });
       return;
     }
@@ -82,7 +146,8 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
 
     const discountData = {
       shopId: selectedShop,
-      discountLimit: parseFloat(discountLimit),
+      discountValues: subDiscountValues,
+      maxDiscountedCases: parseInt(maxDiscountedCases),
       startDate,
       endDate,
     };
@@ -150,8 +215,8 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
             <div className="text-sm">
               <div>Shop Name: {shopDetails.name}</div>
               <div>Shop Type: {shopDetails.type}</div>
-              {shopDetails.discountLimit && (
-                <div>Current Discount Limit: {shopDetails.discountLimit}</div>
+              {shopDetails.maxDiscountedCases && (
+                <div>Current Max Discounted Cases: {shopDetails.maxDiscountedCases}</div>
               )}
               {shopDetails.discountStartDate && shopDetails.discountEndDate && (
                 <div>
@@ -164,26 +229,58 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
           </div>
         )}
 
-        {/* Discount Limit */}
+        {/* Sub-Discount Types and Values */}
+        {availableSubDiscounts.length > 0 && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Discount Limits by Sub-Discount Type
+            </label>
+            <div className="space-y-3">
+              {availableSubDiscounts.map((type) => (
+                <div key={type} className="flex items-center space-x-3">
+                  <div className="w-1/2">
+                    <span className="text-sm text-gray-700">{type}</span>
+                  </div>
+                  <div className="w-1/2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={subDiscountValues[type] || ""}
+                      onChange={(e) => handleSubDiscountChange(type, e.target.value)}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Enter the maximum discount amount for each sub-discount type.
+            </p>
+          </div>
+        )}
+
+        {/* Max Discounted Cases */}
         <div className="mb-4">
           <label
-            htmlFor="discountLimit"
+            htmlFor="maxDiscountedCases"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Discount Limit
+            Max Discounted Cases
           </label>
           <input
             type="number"
-            id="discountLimit"
-            min="0"
-            step="0.01"
-            value={discountLimit}
-            onChange={(e) => setDiscountLimit(e.target.value)}
+            id="maxDiscountedCases"
+            min="1"
+            step="1"
+            value={maxDiscountedCases}
+            onChange={(e) => setMaxDiscountedCases(e.target.value)}
             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             required
           />
           <p className="text-xs text-gray-500 mt-1">
-            The maximum discount amount that can be applied for this shop.
+            The maximum number of cases that can be discounted for this shop.
           </p>
         </div>
 
