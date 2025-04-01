@@ -18,6 +18,7 @@ const LorryPerformance = ({
     totalUnloadingCases: 0,
     totalUnloadingBottles: 0,
     totalSoldUnits: 0,
+    totalSoldCases: 0,
     totalSalesValue: 0,
     totalProfit: 0,
     totalExpiryBottles: 0,
@@ -168,15 +169,20 @@ const LorryPerformance = ({
     console.log("Sales data first item:", salesData[0]);
 
     // Calculate bottles sold
-    productMap.forEach((productData) => {
-      // Calculate bottles sold (loaded - returned)
-      const casesToBottles =
-        (productData.cases_loaded - productData.cases_returned) *
-        productData.case_of_bottle;
-      const individualBottles =
-        productData.bottles_loaded - productData.bottles_returned;
-      productData.estimated_bottles_sold = casesToBottles + individualBottles;
-    });
+productMap.forEach((productData) => {
+  // Calculate bottles sold (loaded - returned)
+  const casesToBottles =
+    (productData.cases_loaded - productData.cases_returned) *
+    productData.case_of_bottle;
+  const individualBottles =
+    productData.bottles_loaded - productData.bottles_returned;
+  productData.estimated_bottles_sold = casesToBottles + individualBottles;
+  
+  // Calculate cases sold based on the units sold and bottles per case
+  productData.cases_sold = productData.case_of_bottle === 16
+    ? (productData.units_sold / (productData.case_of_bottle * 2))
+    : (productData.units_sold / productData.case_of_bottle);
+});
 
     // Convert Map to Array and filter out products with no activity
     const resultArray = Array.from(productMap.values()).filter(
@@ -186,6 +192,7 @@ const LorryPerformance = ({
         item.cases_returned > 0 ||
         item.bottles_returned > 0 ||
         item.units_sold > 0 ||
+        
         item.expiry_bottles > 0 ||
         item.empty_bottles > 0 ||
         item.empty_cases > 0
@@ -244,6 +251,7 @@ const LorryPerformance = ({
           totalUnloadingBottles:
             acc.totalUnloadingBottles + item.bottles_returned,
           totalSoldUnits: acc.totalSoldUnits + item.units_sold,
+          totalSoldCases: acc.totalSoldCases + (item.cases_sold || 0),
           totalSalesValue: acc.totalSalesValue + item.sales_value,
           totalProfit: acc.totalProfit + item.gross_profit,
           totalExpiryBottles: acc.totalExpiryBottles + item.expiry_bottles,
@@ -258,6 +266,7 @@ const LorryPerformance = ({
         totalUnloadingCases: 0,
         totalUnloadingBottles: 0,
         totalSoldUnits: 0,
+        totalSoldCases: 0,
         totalSalesValue: 0,
         totalProfit: 0,
         totalExpiryBottles: 0,
@@ -624,10 +633,10 @@ const LorryPerformance = ({
 
               {/* Financial Data */}
               <th
-                colSpan="3"
+                colSpan="4"
                 className="px-2 py-2 bg-green-100 text-center text-xs font-medium text-gray-700 uppercase"
               >
-                Financial Info
+                Sale Info
               </th>
             </tr>
 
@@ -689,6 +698,9 @@ const LorryPerformance = ({
               {/* Financial Data */}
               <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">
                 Units Sold
+              </th>
+              <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">
+                Cases Sold 
               </th>
               <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">
                 Sales Value
@@ -768,6 +780,16 @@ const LorryPerformance = ({
                     <td className="px-2 py-2 text-sm text-gray-900 text-center">
                       {item.units_sold}
                     </td>
+                    <td className="px-2 py-2 text-sm text-gray-900 text-center">
+                        {(item.case_of_bottle === 16
+                          ? (item.units_sold / (item.case_of_bottle * 2))
+                          : (item.units_sold / item.case_of_bottle)
+                        ).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </td>
+
                     <td className="px-2 py-2 text-sm text-gray-900 text-right">
                       {item.sales_value.toLocaleString(undefined, {
                         minimumFractionDigits: 2,
@@ -842,6 +864,13 @@ const LorryPerformance = ({
                 <td className="px-2 py-2 text-sm text-gray-900 text-center">
                   {totals.totalSoldUnits}
                 </td>
+                <td className="px-2 py-2 text-sm text-gray-900 text-center">
+                    {totals.totalSoldCases.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </td>
+
                 <td className="px-2 py-2 text-sm text-gray-900 text-right">
                   {totals.totalSalesValue.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
@@ -860,7 +889,7 @@ const LorryPerformance = ({
             {lorryPerformanceData.length > 0 && (
               <tr className="bg-gray-200 font-medium">
                 <td
-                  colSpan="13"
+                  colSpan="14"
                   className="px-2 py-2 text-right text-sm text-gray-900"
                 >
                   Net Income (Sales - Expiry):
