@@ -91,7 +91,7 @@ const DiscountManagementPage = () => {
   const handleAddShop = async (shopData) => {
     try {
       await axios.post(`${API_URL}/shops`, shopData);
-      await refreshData();
+      // await refreshData();
       return { success: true };
     } catch (err) {
       console.error("Failed to add shop:", err);
@@ -103,7 +103,6 @@ const DiscountManagementPage = () => {
   const handleSetDiscount = async (discountData) => {
     try {
       await axios.post(`${API_URL}/shops/discounts`, discountData);
-      await refreshData();
       return { success: true };
     } catch (err) {
       console.error("Failed to set discount:", err);
@@ -145,8 +144,7 @@ const DiscountManagementPage = () => {
 
       {isLoading ? (
         <div className="text-center py-6">Loading data...</div>
-      ) : 
-       (
+      ) : (
         <div className="mt-6">
           {activeTab === "Overview" && (
             <OverviewTab shops={shops} discounts={discounts} />

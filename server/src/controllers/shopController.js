@@ -22,6 +22,43 @@ exports.getAllShops = async (req, res) => {
   }
 };
 
+// Get all shop with discount values
+exports.getAllShopsWithDiscountValues = async (req, res) => {
+  try {
+    // Fetch the discount type name from discount_type_id and include all sub discount types belongs to that discount type
+    const shops = await Shop.findAll({
+      include: [
+        {
+          model: db.DiscountType,
+          as: "discountType",
+          attributes: ["discount_name"],
+          include: [
+            {
+              model: SubDiscountType,
+              as: "subDiscountTypes",
+              attributes: ["sub_discount_name"],
+            },
+          ],
+        },
+        {
+          model: ShopDiscountValue,
+          as: "shopDiscountValues",
+          include: [
+            {
+              model: SubDiscountType,
+              as: "subDiscountType",
+              attributes: ["sub_discount_name"],
+            },
+          ],
+        },
+      ],
+    });
+    res.status(200).json(shops);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.getShopById = async (req, res) => {
   try {
     const { id } = req.params;
