@@ -1,6 +1,76 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const OverviewTab = ({ discounts, shops }) => {
+  const [shopDiscountRanges, setShopDiscountRanges] = useState({});
+
+  // Fetch discount values for range calculation
+  useEffect(() => {
+    const fetchDiscountValues = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/shops/with-discount-values`);
+        
+        // Process the discount values to calculate min and max for each shop
+        const ranges = {};
+        response.data.forEach(shop => {
+          // Use shop_id as the key consistently
+          const shopId = shop.shop_id;
+          
+          if (!ranges[shopId]) {
+            ranges[shopId] = {
+              minValue: Infinity,
+              maxValue: 0
+            };
+          }
+          
+          // Check all sub discount types for this shop
+          if (shop.shopDiscountValues && shop.shopDiscountValues.length > 0) {
+            shop.shopDiscountValues.forEach(val => {
+              const discountValue = parseFloat(val.discount_value) || 0;
+              ranges[shopId].minValue = Math.min(ranges[shopId].minValue, discountValue);
+              ranges[shopId].maxValue = Math.max(ranges[shopId].maxValue, discountValue);
+            });
+          }
+        });
+        
+        // Handle case where minValue is still Infinity (no values found)
+        Object.keys(ranges).forEach(shopId => {
+          if (ranges[shopId].minValue === Infinity) {
+            ranges[shopId].minValue = 0;
+          }
+        });
+        
+        console.log("Calculated shop discount ranges:", ranges);
+        setShopDiscountRanges(ranges);
+      } catch (error) {
+        console.error("Error fetching discount values:", error);
+        setShopDiscountRanges({});
+      }
+    };
+    
+    fetchDiscountValues();
+  }, []);
+
+  // Calculate discount value range for a shop
+  // MOVED THIS FUNCTION ABOVE where it's being used
+  const getDiscountValueRange = (shopId, totalLimit) => {
+    // Safety check for undefined or missing shop data
+    if (!shopDiscountRanges[shopId]) {
+      console.warn(`No discount range found for shop ID: ${shopId}`);
+      return { min: 0, max: 0 };
+    }
+    
+    const { minValue, maxValue } = shopDiscountRanges[shopId];
+    
+    // Calculate potential discount range based on TOTAL LIMIT (max cases) instead of remaining
+    return {
+      min: Math.round(minValue * totalLimit),
+      max: Math.round(maxValue * totalLimit)
+    };
+  };
+
   // Calculate remaining discount limits for each shop
   const calculateRemainingDiscounts = () => {
     const shopDiscounts = {};
@@ -8,6 +78,7 @@ const OverviewTab = ({ discounts, shops }) => {
     // Initialize with total limits
     shops.forEach((shop) => {
       shopDiscounts[shop.shop_id] = {
+        shop_id: shop.shop_id, // Store shop_id explicitly
         name: shop.shop_name,
         type: shop.discountType?.discount_name || "Unknown",
         totalLimit: shop.max_discounted_cases || 0,
@@ -58,6 +129,8 @@ const OverviewTab = ({ discounts, shops }) => {
       totalUsed: 0,
       totalRemaining: 0,
       totalDiscountValue: 0,
+      totalMinPotential: 0,
+      totalMaxPotential: 0,  // Added these two properties
     };
     
     shopDiscountData.forEach((shop) => {
@@ -65,6 +138,11 @@ const OverviewTab = ({ discounts, shops }) => {
       summary.totalUsed += shop.used;
       summary.totalRemaining += shop.remaining;
       summary.totalDiscountValue += shop.total_value;
+      
+      // Calculate and add the discount range for each shop
+      const valueRange = getDiscountValueRange(shop.shop_id, shop.totalLimit);
+      summary.totalMinPotential += valueRange.min;
+      summary.totalMaxPotential += valueRange.max;
     });
     
     return summary;
@@ -82,72 +160,83 @@ const OverviewTab = ({ discounts, shops }) => {
         </h2>
 
         <div className="gap-5 max-w-2xl grid md:grid-cols-2">
-          {shopDiscountData.map((shop) => (
-            <div
-              key={shop.name}
-              className="rounded-xl p-5 shadow-md mb-4 bg-white border-l-4 transition-all hover:shadow-lg"
-              style={{
-                borderLeftColor: shop.percentage > 50 ? '#10B981' : shop.percentage > 20 ? '#F59E0B' : '#EF4444',
-                background: 'linear-gradient(to bottom right, white, #f8fafc)'
-              }}
-            >
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-medium text-gray-800">{shop.name}</h3>
-                <span className="text-xs font-medium px-3 py-1 rounded-full text-white" 
-                  style={{ 
-                    background: 'linear-gradient(to right, #6366f1, #8b5cf6)'
-                  }}>
-                  {shop.type}
-                </span>
-              </div>
-
-              <div className="mb-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Discount Limit:</span>
-                  <span className="font-medium">{shop.totalLimit} cases</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Used:</span>
-                  <span className="font-medium">{shop.used} cases</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Remaining:</span>
-                  <span className="font-medium">{shop.remaining} cases</span>
-                </div>
-                <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
-                  <span className="text-gray-600">Total Discount:</span>
-                  <span className="font-medium">LKR {shop.total_value.toLocaleString()}</span>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <div className="w-full bg-gray-100 rounded-full h-3">
-                  <div
-                    className="h-3 rounded-full"
+          {shopDiscountData.map((shop) => {
+            // CHANGED: Using totalLimit instead of remaining
+            const valueRange = getDiscountValueRange(shop.shop_id, shop.totalLimit);
+            
+            return (
+              <div
+                key={shop.name}
+                className="rounded-xl p-5 shadow-md mb-4 bg-white border-l-4 transition-all hover:shadow-lg"
+                style={{
+                  borderLeftColor: shop.percentage > 50 ? '#10B981' : shop.percentage > 20 ? '#F59E0B' : '#EF4444',
+                  background: 'linear-gradient(to bottom right, white, #f8fafc)'
+                }}
+              >
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-medium text-gray-800">{shop.name}</h3>
+                  <span className="text-xs font-medium px-3 py-1 rounded-full text-white" 
                     style={{ 
-                      width: `${shop.percentage}%`,
-                      background: shop.percentage > 50
-                        ? 'linear-gradient(to right, #34d399, #10B981)'
-                        : shop.percentage > 20
-                        ? 'linear-gradient(to right, #fbbf24, #F59E0B)'
-                        : 'linear-gradient(to right, #f87171, #EF4444)'
-                    }}
-                  ></div>
+                      background: 'linear-gradient(to right, #6366f1, #8b5cf6)'
+                    }}>
+                    {shop.type}
+                  </span>
                 </div>
-                <div className="flex justify-between mt-2 text-xs">
-                  <span className={`${shop.percentage < 20 ? 'text-red-500' : 'text-gray-500'}`}>
-                    {shop.used} used
-                  </span>
-                  <span className={`font-medium ${
-                    shop.percentage > 50 ? 'text-green-600' : 
-                    shop.percentage > 20 ? 'text-yellow-600' : 'text-red-600'
-                  }`}>
-                    {shop.percentage}% remaining
-                  </span>
+
+                <div className="mb-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Discount Limit:</span>
+                    <span className="font-medium">{shop.totalLimit} cases</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Used:</span>
+                    <span className="font-medium">{shop.used} cases</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Remaining:</span>
+                    <span className="font-medium">{shop.remaining} cases</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Max Range(LKR):</span>
+                    <span className="font-medium">
+                      {valueRange.min.toLocaleString()} - {valueRange.max.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
+                    <span className="text-gray-600">Total Discount:</span>
+                    <span className="font-medium">LKR {shop.total_value.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <div className="w-full bg-gray-100 rounded-full h-3">
+                    <div
+                      className="h-3 rounded-full"
+                      style={{ 
+                        width: `${shop.percentage}%`,
+                        background: shop.percentage > 50
+                          ? 'linear-gradient(to right, #34d399, #10B981)'
+                          : shop.percentage > 20
+                          ? 'linear-gradient(to right, #fbbf24, #F59E0B)'
+                          : 'linear-gradient(to right, #f87171, #EF4444)'
+                      }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between mt-2 text-xs">
+                    <span className={`${shop.percentage < 20 ? 'text-red-500' : 'text-gray-500'}`}>
+                      {shop.used} used
+                    </span>
+                    <span className={`font-medium ${
+                      shop.percentage > 50 ? 'text-green-600' : 
+                      shop.percentage > 20 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                      {shop.percentage}% remaining
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {shopDiscountData.length === 0 && (
@@ -177,6 +266,12 @@ const OverviewTab = ({ discounts, shops }) => {
                 remaining={summaryData.totalRemaining} 
               />
             </div>
+            
+            {/* Discount Range Display */}
+            <DiscountRangeDisplay
+              minValue={summaryData.totalMinPotential}
+              maxValue={summaryData.totalMaxPotential}
+            />
             
             {/* Summary Box */}
             <div className="rounded-xl p-5 bg-gradient-to-r from-indigo-50 to-blue-50 shadow-inner">
@@ -303,6 +398,35 @@ const PieChart = ({ used, remaining }) => {
         <div className="flex items-center">
           <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-400 to-green-500 mr-2"></div>
           <span className="text-sm text-gray-600">Remaining ({remainingPercentage}%)</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// New Discount Range Display Component
+const DiscountRangeDisplay = ({ minValue, maxValue }) => {
+  return (
+    <div className="mb-6">
+      <h3 className="text-center text-sm font-medium text-indigo-800 mb-3">
+        Maximum Discount Range (All Shops)
+      </h3>
+      <div className="relative h-20 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg p-1">
+        <div className="absolute inset-0 flex justify-between px-3 pt-5">
+          <div className="relative z-10">
+            <div className="text-sm font-bold text-indigo-900">LKR {minValue.toLocaleString()}</div>
+            {/* <div className="text-xs text-indigo-600">Min</div> */}
+          </div>
+          <div className="relative z-10">
+            <div className="text-sm font-bold text-indigo-900">LKR {maxValue.toLocaleString()}</div>
+            {/* <div className="text-xs text-indigo-600 text-right">Max</div> */}
+          </div>
+        </div>
+        <div className="absolute bottom-6 left-0 right-0 px-3">
+          <div className="h-2 bg-gradient-to-r from-blue-200 to-indigo-500 rounded-full"></div>
+        </div>
+        <div className="absolute bottom-1 left-0 right-0 px-3">
+          <p className="text-xs text-indigo-600/70 text-center">(Estimated max discount range for this month)</p>
         </div>
       </div>
     </div>
