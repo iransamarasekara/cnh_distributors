@@ -3,6 +3,10 @@ const router = express.Router();
 const shopController = require("../controllers/shopController");
 
 router.get("/", shopController.getAllShops);
+router.get(
+  "/with-discount-values",
+  shopController.getAllShopsWithDiscountValues
+);
 router.get("/:id", shopController.getShopById);
 router.post("/", shopController.createShop);
 router.put("/:id", shopController.updateShop);

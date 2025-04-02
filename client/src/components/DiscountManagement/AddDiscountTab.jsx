@@ -435,7 +435,8 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
             <option value="">Select a shop</option>
             {shops.map((shop) => (
               <option key={shop.shop_id} value={shop.shop_id}>
-                {shop.shop_name} ({shop.discount_type})
+                {shop.shop_name} (
+                {shop.discountType?.discount_name || "Unknown"})
               </option>
             ))}
           </select>
