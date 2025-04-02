@@ -58,7 +58,7 @@ const AddDiscountShopTab = ({ onAddShop }) => {
   };
 
   return (
-    <div>
+    <div className="max-w-2xl">
       <h2 className="text-xl font-semibold mb-4">Add Discount Shop</h2>
 
       {status.message && (
@@ -73,7 +73,7 @@ const AddDiscountShopTab = ({ onAddShop }) => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="max-w-lg">
+      <form onSubmit={handleSubmit} className="">
         {/* Shop Name */}
         <div className="mb-4">
           <label

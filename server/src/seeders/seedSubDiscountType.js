@@ -6,17 +6,17 @@ const seedSubDiscountTypes = async () => {
     console.log("Database connected.");
 
     const subDiscountTypes = [
-      { sub_discount_type: "ALL WO MPET", discount_amount: 330.0 },
-      { sub_discount_type: "ALL MPET", discount_amount: 330.0 },
-      { sub_discount_type: "MPET (SSG)", discount_amount: 200.0 },
-      { sub_discount_type: "RGB", discount_amount: 200.0 },
-      { sub_discount_type: "MPET (SPC)", discount_amount: 200.0 },
-      { sub_discount_type: "LPET", discount_amount: 200.0 },
+      { sub_discount_name: "ALL WO MPET", discount_type_id: 1 },
+      { sub_discount_name: "ALL MPET", discount_type_id: 1 },
+      { sub_discount_name: "MPET (SSG)", discount_type_id: 1 },
+      { sub_discount_name: "RGB", discount_type_id: 2 },
+      { sub_discount_name: "MPET (SPC)", discount_type_id: 2 },
+      { sub_discount_name: "LPET", discount_type_id: 2 },
     ];
 
     for (const data of subDiscountTypes) {
       const existingEntry = await db.SubDiscountType.findOne({
-        where: { sub_discount_type: data.sub_discount_type },
+        where: { sub_discount_name: data.sub_discount_name },
       });
 
       if (!existingEntry) {
@@ -25,10 +25,10 @@ const seedSubDiscountTypes = async () => {
           created_at: new Date(),
           updated_at: new Date(),
         });
-        console.log(`Sub-discount type '${data.sub_discount_type}' added.`);
+        console.log(`Sub-discount type '${data.sub_discount_name}' added.`);
       } else {
         console.log(
-          `Sub-discount type '${data.sub_discount_type}' already exists.`
+          `Sub-discount type '${data.sub_discount_name}' already exists.`
         );
       }
     }

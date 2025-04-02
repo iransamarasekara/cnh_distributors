@@ -4,10 +4,22 @@ const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   class Shop extends Model {
     static associate(models) {
+      // Shop has many ShopDiscountValues
+      Shop.hasMany(models.ShopDiscountValue, {
+        foreignKey: "shop_id",
+        as: "shopDiscountValues",
+      });
+
       // Shop has many Discounts
       Shop.hasMany(models.Discount, {
         foreignKey: "shop_id",
         as: "discounts",
+      });
+
+      // Shop belongs to DiscountType
+      Shop.belongsTo(models.DiscountType, {
+        foreignKey: "discount_type_id",
+        as: "discountType",
       });
     }
   }
@@ -24,13 +36,13 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      discount_type: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
       max_discounted_cases: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
+      },
+      discount_type_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
       },
     },
     {
