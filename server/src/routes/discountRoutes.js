@@ -4,10 +4,13 @@ const discountController = require("../controllers/discountController");
 
 router.get("/", discountController.getAllDiscounts);
 router.get("/:id", discountController.getDiscountById);
-router.post("/", discountController.createDiscount);
+router.post("/", discountController.createDiscounts);
 router.put("/:id", discountController.updateDiscount);
 router.delete("/:id", discountController.deleteDiscount);
-router.get("/shop/:shopId", discountController.getDiscountsByShop);
+router.get(
+  "/shop/:shopId",
+  discountController.getDiscountsByShopAndCurrentMonth
+);
 router.get("/date-range", discountController.getDiscountsByDateRange);
 
 module.exports = router;

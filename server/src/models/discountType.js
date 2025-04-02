@@ -9,6 +9,12 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "discount_type_id",
         as: "subDiscountTypes",
       });
+
+      // DiscountType has many Shops
+      DiscountType.hasMany(models.Shop, {
+        foreignKey: "discount_type_id",
+        as: "shops",
+      });
     }
   }
 
@@ -20,7 +26,7 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         primaryKey: true,
       },
-      sub_discount_name: {
+      discount_name: {
         type: DataTypes.STRING,
         allowNull: false,
       },

@@ -1,39 +1,40 @@
 import React from "react";
 
-const OverviewTab = ({ shops, discounts }) => {
+const OverviewTab = ({ discounts, shops }) => {
   // Calculate remaining discount limits for each shop
   const calculateRemainingDiscounts = () => {
     const shopDiscounts = {};
 
     // Initialize with total limits
     shops.forEach((shop) => {
-      shopDiscounts[shop.id] = {
-        name: shop.name,
-        type: shop.type,
-        totalLimit: shop.discountLimit || 0,
+      shopDiscounts[shop.shop_id] = {
+        name: shop.shop_name,
+        type: shop.discountType?.discount_name || "Unknown",
+        totalLimit: shop.max_discounted_cases || 0,
         used: 0,
-        remaining: shop.discountLimit || 0,
+        remaining: shop.max_discounted_cases || 0,
         percentage: 100,
       };
     });
 
     // Calculate used discounts
     discounts.forEach((discount) => {
-      if (shopDiscounts[discount.shopId]) {
-        shopDiscounts[discount.shopId].used += discount.value;
-        shopDiscounts[discount.shopId].remaining =
-          shopDiscounts[discount.shopId].totalLimit -
-          shopDiscounts[discount.shopId].used;
+      if (shopDiscounts[discount.shop_id]) {
+        // Accumulate discounted cases instead of value
+        shopDiscounts[discount.shop_id].used += discount.discounted_cases || 0;
+        shopDiscounts[discount.shop_id].remaining =
+          shopDiscounts[discount.shop_id].totalLimit -
+          shopDiscounts[discount.shop_id].used;
 
         // Calculate percentage remaining
         const percentage =
-          shopDiscounts[discount.shopId].totalLimit > 0
-            ? (shopDiscounts[discount.shopId].remaining /
-                shopDiscounts[discount.shopId].totalLimit) *
+          shopDiscounts[discount.shop_id].totalLimit > 0
+            ? (shopDiscounts[discount.shop_id].remaining /
+                shopDiscounts[discount.shop_id].totalLimit) *
               100
             : 0;
 
-        shopDiscounts[discount.shopId].percentage = Math.max(
+        shopDiscounts[discount.shop_id].percentage = Math.max(
           0,
           Math.round(percentage)
         );
@@ -49,9 +50,12 @@ const OverviewTab = ({ shops, discounts }) => {
     <div>
       <h2 className="text-xl font-semibold mb-4">Discount Limits Overview</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="gap-4 max-w-2xl">
         {shopDiscountData.map((shop) => (
-          <div key={shop.name} className="border rounded-lg p-4 shadow-sm">
+          <div
+            key={shop.name}
+            className="border-2 border-gray-400 rounded-lg p-4 shadow-sm mb-4"
+          >
             <div className="flex justify-between items-center mb-2">
               <h3 className="font-medium">{shop.name}</h3>
               <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100">
@@ -62,15 +66,15 @@ const OverviewTab = ({ shops, discounts }) => {
             <div className="mb-2">
               <div className="flex justify-between text-sm mb-1">
                 <span>Discount Limit:</span>
-                <span className="font-medium">{shop.totalLimit}</span>
+                <span className="font-medium">{shop.totalLimit} cases</span>
               </div>
               <div className="flex justify-between text-sm mb-1">
                 <span>Used:</span>
-                <span className="font-medium">{shop.used}</span>
+                <span className="font-medium">{shop.used} cases</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Remaining:</span>
-                <span className="font-medium">{shop.remaining}</span>
+                <span className="font-medium">{shop.remaining} cases</span>
               </div>
             </div>
 

@@ -15,6 +15,12 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "shop_id",
         as: "discounts",
       });
+
+      // Shop belongs to DiscountType
+      Shop.belongsTo(models.DiscountType, {
+        foreignKey: "discount_type_id",
+        as: "discountType",
+      });
     }
   }
 
@@ -31,6 +37,10 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       max_discounted_cases: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      discount_type_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
