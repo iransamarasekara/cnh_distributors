@@ -77,8 +77,9 @@ exports.verifyToken = async (req, res) => {
   } catch (error) {
     if (error.name === "TokenExpiredError") {
       res.status(401).json({ message: "Token expired" });
+    } else {
+      res.status(401).json({ message: "Invalid token" });
     }
-    res.status(401).json({ message: "Invalid token" });
   }
 };
 
