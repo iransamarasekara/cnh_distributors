@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useNotifications } from "../Notification/NotificationContext"; // Add this import
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const OverviewTab = ({ discounts, shops }) => {
   const [shopDiscountRanges, setShopDiscountRanges] = useState({});
+  const { addNotification } = useNotifications(); // Add this hook
+  
+  // Add a state to track which notifications have been sent
+  const [sentNotifications, setSentNotifications] = useState({});
+  
 
   // Fetch discount values for range calculation
   useEffect(() => {
@@ -52,6 +58,7 @@ const OverviewTab = ({ discounts, shops }) => {
     
     fetchDiscountValues();
   }, []);
+  
 
   // Calculate discount value range for a shop
   // MOVED THIS FUNCTION ABOVE where it's being used
@@ -122,6 +129,7 @@ const OverviewTab = ({ discounts, shops }) => {
 
   const shopDiscountData = calculateRemainingDiscounts();
   
+  
   // Calculate summary data for all shops
   const calculateSummaryData = () => {
     const summary = {
@@ -147,6 +155,44 @@ const OverviewTab = ({ discounts, shops }) => {
     
     return summary;
   };
+   // Add a new useEffect to check thresholds and send notifications
+   useEffect(() => {
+    // Check each shop's remaining percentage and trigger notifications
+    shopDiscountData.forEach(shop => {
+      const notificationKey = `${shop.shop_id}-50`;
+      const notificationKey20 = `${shop.shop_id}-20`;
+      
+      // Check if we need to send 50% notification
+      if (shop.percentage <= 50 && shop.percentage > 20 && !sentNotifications[notificationKey]) {
+        addNotification({
+          title: "50% Discount Limit Warning",
+          message: `${shop.name} has reached 50% of its discount limit with ${shop.remaining} cases remaining.`,
+          type: "warning"
+        });
+        
+        // Update sent notifications to prevent duplicates
+        setSentNotifications(prev => ({
+          ...prev,
+          [notificationKey]: true
+        }));
+      }
+      
+      // Check if we need to send 20% notification
+      if (shop.percentage <= 20 && !sentNotifications[notificationKey20]) {
+        addNotification({
+          title: "20% Discount Limit Alert",
+          message: `${shop.name} is critically low with only ${shop.remaining} cases (${shop.percentage}%) remaining!`,
+          type: "danger"
+        });
+        
+        // Update sent notifications to prevent duplicates
+        setSentNotifications(prev => ({
+          ...prev,
+          [notificationKey20]: true
+        }));
+      }
+    });
+  }, [shopDiscountData, addNotification, sentNotifications]);
   
   const summaryData = calculateSummaryData();
 
