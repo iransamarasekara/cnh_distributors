@@ -141,7 +141,7 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
         break;
       }
 
-      if (parseFloat(subDiscountValues[type]) <= 0) {
+      if (parseFloat(subDiscountValues[type]) < 0) {
         setStatus({
           type: "error",
           message: `Discount value for ${type} must be greater than zero.`,
@@ -158,7 +158,7 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
       return;
     }
 
-    if (parseInt(maxDiscountedCases) <= 0) {
+    if (parseInt(maxDiscountedCases) < 0) {
       setStatus({
         type: "error",
         message: "Max discounted cases must be greater than zero.",
