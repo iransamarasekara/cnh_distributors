@@ -4,20 +4,25 @@ import axios from "axios";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
+  // Existing state variables
   const [selectedLorry, setSelectedLorry] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [selectedShop, setSelectedShop] = useState("");
-  const [selectedSubDiscountType, setSelectedSubDiscountType] = useState("");
-  const [currentCases, setCurrentCases] = useState("");
   const [status, setStatus] = useState({ type: "", message: "" });
   const [maxDiscountedCases, setMaxDiscountedCases] = useState(0);
+  const [shopDetails, setShopDetails] = useState(null);
   const [subDiscountTypes, setSubDiscountTypes] = useState([]);
-  const [filteredSubDiscountTypes, setFilteredSubDiscountTypes] = useState([]);
+  const [shopDiscountValues, setShopDiscountValues] = useState([]);
   const [selectedShopType, setSelectedShopType] = useState("");
   const [addedDiscounts, setAddedDiscounts] = useState([]);
   const [totalDiscountedCases, setTotalDiscountedCases] = useState(0);
+  const [currentMonth, setCurrentMonth] = useState(null);
+  const [shopMonthlyDiscounts, setShopMonthlyDiscounts] = useState([]);
+  const [availableCases, setAvailableCases] = useState(0);
+  const [discountInputs, setDiscountInputs] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reset form
   const resetForm = () => {
@@ -26,12 +31,29 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
     setSelectedDate("");
     setSelectedTime("");
     setSelectedShop("");
-    setSelectedSubDiscountType("");
-    setCurrentCases("");
     setSelectedShopType("");
     setAddedDiscounts([]);
     setTotalDiscountedCases(0);
+    setDiscountInputs({});
   };
+
+  // Fetch current Coca-Cola month
+  useEffect(() => {
+    const fetchCurrentMonth = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/coca-cola-month/current`);
+        setCurrentMonth(response.data);
+      } catch (err) {
+        console.error("Failed to fetch current Coca-Cola month:", err);
+        setStatus({
+          type: "error",
+          message: "Failed to fetch current month details.",
+        });
+      }
+    };
+
+    fetchCurrentMonth();
+  }, []);
 
   // Fetch sub discount types when component mounts
   useEffect(() => {
@@ -49,145 +71,142 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
     fetchData();
   }, []);
 
-  // When shop selection changes, fetch the max discounted cases and set shop type
+  // When shop selection changes, fetch the shop details and current month discounts
   useEffect(() => {
     if (!selectedShop) {
+      setShopDetails(null);
       setMaxDiscountedCases(0);
       setSelectedShopType("");
-      setFilteredSubDiscountTypes([]);
+      setShopDiscountValues([]);
       setAddedDiscounts([]);
       setTotalDiscountedCases(0);
+      setShopMonthlyDiscounts([]);
+      setAvailableCases(0);
+      setDiscountInputs({});
       return;
     }
 
     const getShopDetails = async () => {
       try {
+        // Get shop details
         const shopResponse = await axios.get(
           `${API_URL}/shops/${selectedShop}`
         );
+
         if (shopResponse.data) {
           const shopData = shopResponse.data;
+          setShopDetails(shopData);
           setMaxDiscountedCases(shopData.max_discounted_cases || 0);
           setSelectedShopType(shopData.discount_type);
 
-          // Reset selected sub discount type when shop changes
-          setSelectedSubDiscountType("");
+          // Set shop discount values
+          if (
+            shopData.shopDiscountValues &&
+            shopData.shopDiscountValues.length > 0
+          ) {
+            setShopDiscountValues(shopData.shopDiscountValues);
+
+            // Initialize discount inputs with zero cases
+            const initialInputs = {};
+            shopData.shopDiscountValues.forEach((value) => {
+              initialInputs[value.sub_discount_type_id] = "";
+            });
+            setDiscountInputs(initialInputs);
+          }
+
           setAddedDiscounts([]);
           setTotalDiscountedCases(0);
+
+          // Get discounts already used in current month
+          if (currentMonth) {
+            const discountsResponse = await axios.get(
+              `${API_URL}/discounts/shop/${selectedShop}`
+            );
+
+            setShopMonthlyDiscounts(discountsResponse.data);
+
+            // Calculate available cases
+            const usedCases = discountsResponse.data.reduce(
+              (total, discount) => total + discount.discounted_cases,
+              0
+            );
+
+            setAvailableCases(
+              Math.max(0, shopData.max_discounted_cases - usedCases)
+            );
+          }
         }
       } catch (err) {
         console.error("Failed to fetch shop details:", err);
+        setStatus({
+          type: "error",
+          message: "Failed to fetch shop details or discount usage.",
+        });
       }
     };
 
     getShopDetails();
-  }, [selectedShop]);
+  }, [selectedShop, currentMonth]);
 
-  // Filter sub discount types based on shop type
-  useEffect(() => {
-    if (!selectedShopType || subDiscountTypes.length === 0) {
-      setFilteredSubDiscountTypes([]);
-      return;
+  // Handle discount input change
+  const handleDiscountInputChange = (typeId, value) => {
+    setDiscountInputs({
+      ...discountInputs,
+      [typeId]: value,
+    });
+  };
+
+  // Add all discount items to the list
+  const addAllDiscountItems = () => {
+    // Check if any cases are entered
+    let hasCases = false;
+    let totalCases = 0;
+
+    // Create new discounts array
+    const newDiscounts = [];
+
+    for (const [typeId, casesValue] of Object.entries(discountInputs)) {
+      if (casesValue && parseInt(casesValue) > 0) {
+        hasCases = true;
+        const casesNum = parseInt(casesValue);
+        totalCases += casesNum;
+
+        // Find the discount details
+        const discountValue = shopDiscountValues.find(
+          (value) => value.sub_discount_type_id.toString() === typeId
+        );
+
+        if (discountValue) {
+          newDiscounts.push({
+            sub_discount_type_id: typeId,
+            sub_discount_type:
+              discountValue.subDiscountType?.sub_discount_name || "Unknown",
+            discount_amount: discountValue.discount_value,
+            discounted_cases: casesNum,
+          });
+        }
+      }
     }
 
-    let filtered = [];
-    if (selectedShopType === "SSG") {
-      // For SSG shop type, show specific types
-      filtered = subDiscountTypes.filter(
-        (type) =>
-          type.sub_discount_type === "ALL WO MPET" ||
-          type.sub_discount_type === "ALL MPET" ||
-          type.sub_discount_type === "MPET (SSG)"
-      );
-    } else if (selectedShopType === "SPC") {
-      // For SPC shop type, show specific types
-      filtered = subDiscountTypes.filter(
-        (type) =>
-          type.sub_discount_type === "RGB" ||
-          type.sub_discount_type === "MPET (SPC)" ||
-          type.sub_discount_type === "LPET"
-      );
-    }
-
-    setFilteredSubDiscountTypes(filtered);
-  }, [selectedShopType, subDiscountTypes]);
-
-  // Add current discount type and cases to the list
-  const addDiscountItem = () => {
-    // Validation
-    if (!selectedSubDiscountType || !currentCases) {
+    if (!hasCases) {
       setStatus({
         type: "error",
-        message: "Please select a discount type and enter cases",
+        message: "Please enter cases for at least one discount type",
       });
       return;
     }
 
-    const casesNum = parseInt(currentCases, 10);
-    if (casesNum <= 0) {
+    // Check if adding these cases exceeds the available cases
+    if (totalCases > availableCases) {
       setStatus({
         type: "error",
-        message: "Cases must be greater than zero",
+        message: `Adding ${totalCases} cases would exceed available cases (${availableCases})`,
       });
       return;
     }
 
-    // Check if adding these cases exceeds the maximum
-    const newTotalCases = totalDiscountedCases + casesNum;
-    if (newTotalCases > maxDiscountedCases) {
-      setStatus({
-        type: "error",
-        message: `Adding ${casesNum} cases would exceed maximum allowed (${maxDiscountedCases})`,
-      });
-      return;
-    }
-
-    // Find the selected discount type details
-    const discountType = subDiscountTypes.find(
-      (type) => type.sub_discount_type_id === selectedSubDiscountType
-    );
-
-    if (!discountType) {
-      setStatus({
-        type: "error",
-        message: "Selected discount type not found",
-      });
-      return;
-    }
-
-    // Check if this discount type is already added
-    const existingIndex = addedDiscounts.findIndex(
-      (item) => item.sub_discount_type_id === selectedSubDiscountType
-    );
-
-    if (existingIndex >= 0) {
-      // Update existing entry
-      const updatedDiscounts = [...addedDiscounts];
-      updatedDiscounts[existingIndex].discounted_cases = casesNum;
-      setAddedDiscounts(updatedDiscounts);
-      
-      // Recalculate total cases
-      const newTotal = updatedDiscounts.reduce(
-        (sum, item) => sum + item.discounted_cases,
-        0
-      );
-      setTotalDiscountedCases(newTotal);
-    } else {
-      // Add new entry
-      const newDiscount = {
-        sub_discount_type_id: selectedSubDiscountType,
-        sub_discount_type: discountType.sub_discount_type,
-        discount_amount: discountType.discount_amount,
-        discounted_cases: casesNum,
-      };
-
-      setAddedDiscounts([...addedDiscounts, newDiscount]);
-      setTotalDiscountedCases(newTotalCases);
-    }
-
-    // Clear the inputs for next entry
-    setSelectedSubDiscountType("");
-    setCurrentCases("");
+    setAddedDiscounts(newDiscounts);
+    setTotalDiscountedCases(totalCases);
     setStatus({ type: "", message: "" });
   };
 
@@ -196,13 +215,86 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
     const updatedDiscounts = [...addedDiscounts];
     const removedCases = updatedDiscounts[index].discounted_cases;
     updatedDiscounts.splice(index, 1);
-    
+
     setAddedDiscounts(updatedDiscounts);
     setTotalDiscountedCases(totalDiscountedCases - removedCases);
   };
 
+  // // Handle discount input change
+  // const handleDiscountInputChange = (typeId, value) => {
+  //   setDiscountInputs({
+  //     ...discountInputs,
+  //     [typeId]: value,
+  //   });
+  // };
+
+  // // Add all discount items to the list
+  // const addAllDiscountItems = () => {
+  //   // Check if any cases are entered
+  //   let hasCases = false;
+  //   let totalCases = 0;
+
+  //   // Create new discounts array
+  //   const newDiscounts = [];
+
+  //   for (const [typeId, casesValue] of Object.entries(discountInputs)) {
+  //     if (casesValue && parseInt(casesValue) > 0) {
+  //       hasCases = true;
+  //       const casesNum = parseInt(casesValue);
+  //       totalCases += casesNum;
+
+  //       // Find the discount details
+  //       const discountValue = shopDiscountValues.find(
+  //         (value) => value.sub_discount_type_id.toString() === typeId
+  //       );
+
+  //       if (discountValue) {
+  //         newDiscounts.push({
+  //           sub_discount_type_id: typeId,
+  //           sub_discount_type:
+  //             discountValue.subDiscountType?.sub_discount_name || "Unknown",
+  //           discount_amount: discountValue.discount_value,
+  //           discounted_cases: casesNum,
+  //         });
+  //       }
+  //     }
+  //   }
+
+  //   if (!hasCases) {
+  //     setStatus({
+  //       type: "error",
+  //       message: "Please enter cases for at least one discount type",
+  //     });
+  //     return;
+  //   }
+
+  //   // Check if adding these cases exceeds the available cases
+  //   if (totalCases > availableCases) {
+  //     setStatus({
+  //       type: "error",
+  //       message: `Adding ${totalCases} cases would exceed available cases (${availableCases})`,
+  //     });
+  //     return;
+  //   }
+
+  //   setAddedDiscounts(newDiscounts);
+  //   setTotalDiscountedCases(totalCases);
+  //   setStatus({ type: "", message: "" });
+  // };
+
+  // // Remove a discount item
+  // const removeDiscountItem = (index) => {
+  //   const updatedDiscounts = [...addedDiscounts];
+  //   const removedCases = updatedDiscounts[index].discounted_cases;
+  //   updatedDiscounts.splice(index, 1);
+
+  //   setAddedDiscounts(updatedDiscounts);
+  //   setTotalDiscountedCases(totalDiscountedCases - removedCases);
+  // };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     // Validation
     if (
@@ -215,50 +307,88 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
     ) {
       setStatus({
         type: "error",
-        message: "Please fill in all required fields and add at least one discount",
+        message:
+          "Please fill in all required fields and add at least one discount",
       });
+      setIsSubmitting(false);
       return;
     }
 
-    // Prepare an array of discount data objects
-    const discountDataArray = addedDiscounts.map(discount => ({
+    // Check if date is within current month
+    const selectedDateTime = new Date(`${selectedDate}T${selectedTime}`);
+
+    if (currentMonth) {
+      const monthStart = new Date(currentMonth.start_date);
+      const monthEnd = new Date(currentMonth.end_date);
+
+      if (selectedDateTime < monthStart || selectedDateTime > monthEnd) {
+        setStatus({
+          type: "error",
+          message: `Selected date must be within current month: ${monthStart.toLocaleDateString()} to ${monthEnd.toLocaleDateString()}`,
+        });
+        setIsSubmitting(false);
+        return;
+      }
+    } else {
+      setStatus({
+        type: "error",
+        message:
+          "No current month defined. Please set up a Coca-Cola month first.",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Prepare discount items array
+    const discountItems = addedDiscounts.map((discount) => ({
+      sub_discount_type_id: discount.sub_discount_type_id,
+      discounted_cases: discount.discounted_cases,
+    }));
+
+    // Prepare the request payload with all discounts
+    const discountData = {
       shop_id: selectedShop,
       lorry_id: selectedLorry,
       selling_date: `${selectedDate}T${selectedTime}`,
-      sub_discount_type_id: discount.sub_discount_type_id,
-      discounted_cases: discount.discounted_cases,
       invoice_number: invoiceNumber,
-    }));
+      discountItems: discountItems,
+    };
 
     try {
-      // Call the provided onAddDiscount function for each discount item
-      for (const discountData of discountDataArray) {
-        const result = await onAddDiscount(discountData);
-        if (!result.success) {
-          setStatus({
-            type: "error",
-            message: result.error || "Failed to add some discounts",
-          });
-          return;
-        }
-      }
+      // Call the new API endpoint that handles multiple discount items
+      const response = await axios.post(`${API_URL}/discounts`, discountData);
 
       setStatus({
         type: "success",
-        message: "All discounts added successfully!",
+        message: `All discounts added successfully! Created ${response.data.count} discount items.`,
       });
       resetForm();
     } catch (error) {
+      const errorMsg =
+        error.response?.data?.message ||
+        "An error occurred while adding discounts";
       setStatus({
         type: "error",
-        message: "An error occurred while adding discounts",
+        message: errorMsg,
       });
       console.error("Error submitting discounts:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  // Format date to display in a more readable format
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   return (
-    <div>
+    <div className="max-w-2xl">
       <h2 className="text-xl font-semibold mb-4">Add New Discount</h2>
 
       {status.message && (
@@ -273,7 +403,20 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="max-w-lg">
+      {/* Current Month Display */}
+      {currentMonth && (
+        <div className="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200">
+          <h3 className="text-md font-medium text-blue-800 mb-1">
+            Current Coca-Cola Month
+          </h3>
+          <p className="text-sm text-blue-600">
+            {formatDate(currentMonth.start_date)} to{" "}
+            {formatDate(currentMonth.end_date)}
+          </p>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="">
         {/* Shop Selection */}
         <div className="mb-4">
           <label
@@ -292,7 +435,8 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
             <option value="">Select a shop</option>
             {shops.map((shop) => (
               <option key={shop.shop_id} value={shop.shop_id}>
-                {shop.shop_name} ({shop.discount_type})
+                {shop.shop_name} (
+                {shop.discountType?.discount_name || "Unknown"})
               </option>
             ))}
           </select>
@@ -306,12 +450,18 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
                 <span className="font-medium">{maxDiscountedCases}</span>
               </div>
               <div className="flex justify-between mt-1">
-                <span>Total Cases Added:</span>
-                <span className="font-medium">{totalDiscountedCases}</span>
+                <span>Used Cases This Month:</span>
+                <span className="font-medium">
+                  {maxDiscountedCases - availableCases}
+                </span>
+              </div>
+              <div className="flex justify-between mt-1 text-blue-700 font-medium">
+                <span>Available Cases:</span>
+                <span>{availableCases}</span>
               </div>
               <div className="flex justify-between mt-1">
-                <span>Cases Remaining:</span>
-                <span className="font-medium">{maxDiscountedCases - totalDiscountedCases}</span>
+                <span>Cases Being Added:</span>
+                <span className="font-medium">{totalDiscountedCases}</span>
               </div>
               {selectedShopType && (
                 <div className="flex justify-between mt-1">
@@ -401,59 +551,64 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
           />
         </div>
 
-        {/* Discount Type and Cases Selection */}
-        {selectedShopType && (
+        {/* Discount Types and Cases Input */}
+        {shopDiscountValues.length > 0 && (
           <div className="mb-4 border border-gray-200 rounded-md p-4 bg-gray-50">
-            <h3 className="font-medium mb-3">Add Discount Items</h3>
-            <div className="flex gap-3 mb-3">
-              <div className="flex-grow">
-                <label
-                  htmlFor="discountType"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Discount Type
-                </label>
-                <select
-                  id="discountType"
-                  value={selectedSubDiscountType}
-                  onChange={(e) => setSelectedSubDiscountType(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select a discount type</option>
-                  {filteredSubDiscountTypes.map((type) => (
-                    <option
-                      key={type.sub_discount_type_id}
-                      value={type.sub_discount_type_id}
-                    >
-                      {type.sub_discount_type} (LKR {type.discount_amount} per case)
-                    </option>
+            <h3 className="font-medium mb-3">Available Discount Types</h3>
+
+            <div className="mb-3">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                      Discount Type
+                    </th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                      Amount (LKR)
+                    </th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                      Cases
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {shopDiscountValues.map((value) => (
+                    <tr key={value.sub_discount_type_id}>
+                      <td className="px-4 py-2 text-sm text-gray-900">
+                        {value.subDiscountType?.sub_discount_name || "Unknown"}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-900 text-right">
+                        {value.discount_value}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={
+                            discountInputs[value.sub_discount_type_id] || ""
+                          }
+                          onChange={(e) =>
+                            handleDiscountInputChange(
+                              value.sub_discount_type_id,
+                              e.target.value
+                            )
+                          }
+                          className="w-20 border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </td>
+                    </tr>
                   ))}
-                </select>
-              </div>
-              <div className="w-32">
-                <label
-                  htmlFor="cases"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Cases
-                </label>
-                <input
-                  type="number"
-                  id="cases"
-                  min="1"
-                  step="1"
-                  value={currentCases}
-                  onChange={(e) => setCurrentCases(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div className="self-end mb-1">
+                </tbody>
+              </table>
+
+              <div className="mt-3 text-right">
                 <button
                   type="button"
-                  onClick={addDiscountItem}
+                  onClick={addAllDiscountItems}
                   className="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
                 >
-                  Add
+                  Add All Discount Items
                 </button>
               </div>
             </div>
@@ -461,7 +616,9 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
             {/* Added Discount Items */}
             {addedDiscounts.length > 0 && (
               <div className="mt-4">
-                <h4 className="text-sm font-medium mb-2">Added Discount Items:</h4>
+                <h4 className="text-sm font-medium mb-2">
+                  Added Discount Items:
+                </h4>
                 <div className="border rounded-md overflow-hidden">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-100">
@@ -510,15 +667,21 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
                         </tr>
                       ))}
                       <tr className="bg-gray-50">
-                        <td className="px-4 py-2 text-sm font-medium" colSpan="2">
+                        <td
+                          className="px-4 py-2 text-sm font-medium"
+                          colSpan="2"
+                        >
                           Total
                         </td>
                         <td className="px-4 py-2 text-sm font-medium text-right">
                           {totalDiscountedCases}
                         </td>
                         <td className="px-4 py-2 text-sm font-medium text-right">
-                          LKR {addedDiscounts.reduce(
-                            (sum, item) => sum + (item.discount_amount * item.discounted_cases),
+                          LKR{" "}
+                          {addedDiscounts.reduce(
+                            (sum, item) =>
+                              sum +
+                              item.discount_amount * item.discounted_cases,
                             0
                           )}
                         </td>

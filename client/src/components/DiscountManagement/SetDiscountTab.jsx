@@ -3,12 +3,6 @@ import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-// Sub-discount types mapping based on shop type
-const SUB_DISCOUNT_TYPES = {
-  SSG: ["ALL WO MPET", "ALL MPET", "MPET"],
-  SPC: ["RGB", "MPET", "LPET"]
-};
-
 const SetDiscountTab = ({ shops, onSetDiscount }) => {
   const [selectedShop, setSelectedShop] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -16,7 +10,11 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
   const [status, setStatus] = useState({ type: "", message: "" });
   const [shopDetails, setShopDetails] = useState(null);
   const [maxDiscountedCases, setMaxDiscountedCases] = useState("");
-  
+  const [currentCocaColaMonth, setCurrentCocaColaMonth] = useState(null);
+  const [showNewMonthForm, setShowNewMonthForm] = useState(false);
+  const [newMonthStartDate, setNewMonthStartDate] = useState("");
+  const [newMonthEndDate, setNewMonthEndDate] = useState("");
+
   // State for sub-discount types and their values
   const [subDiscountValues, setSubDiscountValues] = useState({});
   const [availableSubDiscounts, setAvailableSubDiscounts] = useState([]);
@@ -28,6 +26,25 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
     setEndDate("");
     setMaxDiscountedCases("");
   };
+
+  // Fetch current Coca-Cola month
+  const fetchCurrentCocaColaMonth = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/coca-cola-month/current`);
+      setCurrentCocaColaMonth(response.data);
+    } catch (err) {
+      console.error("Failed to fetch current Coca-Cola month:", err);
+      setStatus({
+        type: "error",
+        message: "Failed to fetch current Coca-Cola month.",
+      });
+    }
+  };
+
+  // Fetch shop details and current Coca-Cola month on component mount
+  useEffect(() => {
+    fetchCurrentCocaColaMonth();
+  }, []);
 
   // Fetch shop details and set appropriate sub-discount types
   useEffect(() => {
@@ -41,35 +58,48 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
       try {
         const response = await axios.get(`${API_URL}/shops/${selectedShop}`);
         setShopDetails(response.data);
-        
-        // Set sub-discount types based on shop type
-        const shopType = response.data.type;
-        if (shopType === "SSG" || shopType === "SPC") {
-          const subTypes = SUB_DISCOUNT_TYPES[shopType] || [];
+
+        // Initialize sub-discount values
+        let initialValues = {};
+
+        // Get sub-discount types from the API response
+        if (
+          response.data.discountType &&
+          response.data.discountType.subDiscountTypes
+        ) {
+          const subTypes = response.data.discountType.subDiscountTypes.map(
+            (type) => type.sub_discount_name
+          );
           setAvailableSubDiscounts(subTypes);
-          
-          // Initialize sub-discount values
-          const initialValues = {};
-          subTypes.forEach(type => {
+
+          subTypes.forEach((type) => {
             initialValues[type] = "";
           });
           setSubDiscountValues(initialValues);
         }
 
         // Pre-fill existing values if available
-        if (response.data.maxDiscountedCases) {
-          setMaxDiscountedCases(response.data.maxDiscountedCases);
+        if (response.data.max_discounted_cases) {
+          setMaxDiscountedCases(response.data.max_discounted_cases);
         }
-        if (response.data.discountStartDate) {
-          setStartDate(response.data.discountStartDate.split("T")[0]);
+        if (response.data.discount_start_date) {
+          setStartDate(response.data.discount_start_date.split("T")[0]);
         }
-        if (response.data.discountEndDate) {
-          setEndDate(response.data.discountEndDate.split("T")[0]);
+        if (response.data.discount_end_date) {
+          setEndDate(response.data.discount_end_date.split("T")[0]);
         }
-        
+
         // Pre-fill sub-discount values if available
-        if (response.data.discountValues) {
-          setSubDiscountValues({...initialValues, ...response.data.discountValues});
+        if (
+          response.data.shopDiscountValues &&
+          response.data.shopDiscountValues.length > 0
+        ) {
+          const existingValues = {};
+          response.data.shopDiscountValues.forEach((item) => {
+            existingValues[item.subDiscountType.sub_discount_name] =
+              item.discount_value;
+          });
+          setSubDiscountValues({ ...initialValues, ...existingValues });
         }
       } catch (err) {
         console.error("Failed to fetch shop details:", err);
@@ -85,9 +115,9 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
 
   // Handle changes to sub-discount values
   const handleSubDiscountChange = (type, value) => {
-    setSubDiscountValues(prev => ({
+    setSubDiscountValues((prev) => ({
       ...prev,
-      [type]: value
+      [type]: value,
     }));
   };
 
@@ -95,7 +125,7 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
     e.preventDefault();
 
     // Validation
-    if (!selectedShop || !startDate || !endDate || !maxDiscountedCases) {
+    if (!selectedShop || !maxDiscountedCases) {
       setStatus({
         type: "error",
         message: "Please fill in all required fields.",
@@ -111,7 +141,7 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
         break;
       }
 
-      if (parseFloat(subDiscountValues[type]) <= 0) {
+      if (parseFloat(subDiscountValues[type]) < 0) {
         setStatus({
           type: "error",
           message: `Discount value for ${type} must be greater than zero.`,
@@ -128,7 +158,7 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
       return;
     }
 
-    if (parseInt(maxDiscountedCases) <= 0) {
+    if (parseInt(maxDiscountedCases) < 0) {
       setStatus({
         type: "error",
         message: "Max discounted cases must be greater than zero.",
@@ -152,24 +182,88 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
       endDate,
     };
 
-    const result = await onSetDiscount(discountData);
+    try {
+      const result = await onSetDiscount(discountData);
 
-    if (result.success) {
-      setStatus({
-        type: "success",
-        message: "Discount limits set successfully!",
-      });
-      resetForm();
-    } else {
+      if (result.success) {
+        setStatus({
+          type: "success",
+          message: "Discount limits set successfully!",
+        });
+        resetForm();
+        setSelectedShop("");
+      } else {
+        setStatus({
+          type: "error",
+          message: result.error || "Failed to set discount limits.",
+        });
+      }
+    } catch (error) {
       setStatus({
         type: "error",
-        message: result.error || "Failed to set discount limits.",
+        message: error.message || "An unexpected error occurred.",
       });
     }
   };
 
+  // Handle creating a new Coca-Cola month
+  const handleCreateNewMonth = async (e) => {
+    e.preventDefault();
+
+    if (!newMonthStartDate || !newMonthEndDate) {
+      setStatus({
+        type: "error",
+        message: "Please provide both start and end dates for the new month.",
+      });
+      return;
+    }
+
+    if (new Date(newMonthStartDate) >= new Date(newMonthEndDate)) {
+      setStatus({
+        type: "error",
+        message: "Start date must be before end date.",
+      });
+      return;
+    }
+
+    try {
+      await axios.post(`${API_URL}/coca-cola-month`, {
+        start_date: newMonthStartDate,
+        end_date: newMonthEndDate,
+      });
+
+      setStatus({
+        type: "success",
+        message: "New Coca-Cola month created successfully!",
+      });
+
+      // Refresh the current month data
+      fetchCurrentCocaColaMonth();
+
+      // Reset form and hide it
+      setNewMonthStartDate("");
+      setNewMonthEndDate("");
+      setShowNewMonthForm(false);
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message: error.response?.data?.message || "Failed to create new month.",
+      });
+    }
+  };
+
+  // Format date to display in a more readable format
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   return (
-    <div>
+    <div className="max-w-2xl">
       <h2 className="text-xl font-semibold mb-4">Set Discount Limits</h2>
 
       {status.message && (
@@ -184,7 +278,105 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="max-w-lg">
+      {/* Current Coca-Cola Month Display */}
+      <div className="mb-6 p-4 bg-blue-50 rounded-md border border-blue-200">
+        <h3 className="text-lg font-medium text-blue-800 mb-2">
+          Current Coca-Cola Month
+        </h3>
+        {currentCocaColaMonth ? (
+          <div>
+            <p className="mb-2">
+              <span className="font-medium">Period:</span>{" "}
+              {formatDate(currentCocaColaMonth.start_date)} to{" "}
+              {formatDate(currentCocaColaMonth.end_date)}
+            </p>
+            <div className="flex space-x-3 mt-3">
+              <button
+                type="button"
+                onClick={() => setShowNewMonthForm(!showNewMonthForm)}
+                className="bg-blue-600 text-white py-1.5 px-3 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-sm"
+              >
+                {showNewMonthForm ? "Cancel" : "Change Month"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <p className="text-gray-700 mb-2">
+              No current Coca-Cola month defined.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowNewMonthForm(true)}
+              className="bg-blue-600 text-white py-1.5 px-3 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-sm"
+            >
+              Create New Month
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* New Coca-Cola Month Form */}
+      {showNewMonthForm && (
+        <div className="mb-6 p-4 bg-gray-50 rounded-md border border-gray-200">
+          <h3 className="text-lg font-medium mb-3">
+            Create New Coca-Cola Month
+          </h3>
+          <form onSubmit={handleCreateNewMonth} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="newMonthStartDate"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  id="newMonthStartDate"
+                  value={newMonthStartDate}
+                  onChange={(e) => setNewMonthStartDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="newMonthEndDate"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  id="newMonthEndDate"
+                  value={newMonthEndDate}
+                  onChange={(e) => setNewMonthEndDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+            </div>
+            <div className="flex space-x-3">
+              <button
+                type="submit"
+                className="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 text-sm"
+              >
+                Create New Month
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowNewMonthForm(false)}
+                className="bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 text-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="">
         {/* Shop Selection */}
         <div className="mb-4">
           <label
@@ -202,8 +394,13 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
           >
             <option value="">Select a shop</option>
             {shops.map((shop) => (
-              <option key={shop.id} value={shop.id}>
-                {shop.name} ({shop.type})
+              <option key={shop.shop_id} value={shop.shop_id}>
+                {shop.shop_name} (
+                {shop.discount_type_id
+                  ? shops.find((s) => s.shop_id === shop.shop_id)?.discountType
+                      ?.discount_name || "Unknown"
+                  : "No type"}
+                )
               </option>
             ))}
           </select>
@@ -213,18 +410,25 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
           <div className="mb-4 p-3 bg-gray-50 rounded-md">
             <h3 className="font-medium mb-2">Current Shop Settings</h3>
             <div className="text-sm">
-              <div>Shop Name: {shopDetails.name}</div>
-              <div>Shop Type: {shopDetails.type}</div>
-              {shopDetails.maxDiscountedCases && (
-                <div>Current Max Discounted Cases: {shopDetails.maxDiscountedCases}</div>
-              )}
-              {shopDetails.discountStartDate && shopDetails.discountEndDate && (
+              <div>Shop Name: {shopDetails.shop_name}</div>
+              <div>
+                Shop Type:{" "}
+                {shopDetails.discountType?.discount_name || "Unknown"}
+              </div>
+              {shopDetails.max_discounted_cases && (
                 <div>
-                  Current Validity:{" "}
-                  {shopDetails.discountStartDate.split("T")[0]} to{" "}
-                  {shopDetails.discountEndDate.split("T")[0]}
+                  Current Max Discounted Cases:{" "}
+                  {shopDetails.max_discounted_cases}
                 </div>
               )}
+              {shopDetails.discount_start_date &&
+                shopDetails.discount_end_date && (
+                  <div>
+                    Current Validity:{" "}
+                    {shopDetails.discount_start_date.split("T")[0]} to{" "}
+                    {shopDetails.discount_end_date.split("T")[0]}
+                  </div>
+                )}
             </div>
           </div>
         )}
@@ -247,7 +451,9 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
                       min="0"
                       step="0.01"
                       value={subDiscountValues[type] || ""}
-                      onChange={(e) => handleSubDiscountChange(type, e.target.value)}
+                      onChange={(e) =>
+                        handleSubDiscountChange(type, e.target.value)
+                      }
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       required
                     />
@@ -284,7 +490,7 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
           </p>
         </div>
 
-        {/* Date Range */}
+        {/* Date Range
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div>
             <label
@@ -318,7 +524,7 @@ const SetDiscountTab = ({ shops, onSetDiscount }) => {
               required
             />
           </div>
-        </div>
+        </div> */}
 
         <div>
           <button

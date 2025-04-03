@@ -20,10 +20,7 @@ exports.getAllDiscounts = async (req, res) => {
           model: db.SubDiscountType,
           as: "subDiscountType",
         },
-        {
-          model: db.Product,
-          as: "product",
-        },
+        // Product association has been removed from the diagram
       ],
     });
     res.status(200).json(discounts);
@@ -50,10 +47,7 @@ exports.getDiscountById = async (req, res) => {
           model: db.SubDiscountType,
           as: "subDiscountType",
         },
-        {
-          model: db.Product,
-          as: "product",
-        },
+        // Product association has been removed from the diagram
       ],
     });
     if (discount) {
@@ -66,17 +60,24 @@ exports.getDiscountById = async (req, res) => {
   }
 };
 
-exports.createDiscount = async (req, res) => {
+exports.createDiscounts = async (req, res) => {
   try {
-    const {
-      shop_id,
-      selling_date,
-      lorry_id,
-      sub_discount_type_id,
-      discounted_cases,
-      product_id,
-      invoice_number,
-    } = req.body;
+    const { shop_id, selling_date, lorry_id, invoice_number, discountItems } =
+      req.body;
+
+    // Validate required fields
+    if (
+      !shop_id ||
+      !selling_date ||
+      !lorry_id ||
+      !invoice_number ||
+      !discountItems ||
+      !Array.isArray(discountItems)
+    ) {
+      return res.status(400).json({
+        message: "Missing required fields or discountItems is not an array",
+      });
+    }
 
     // Find the shop to check max_discounted_cases
     const shop = await Shop.findOne({
@@ -89,66 +90,133 @@ exports.createDiscount = async (req, res) => {
         .json({ message: `Shop with id ${shop_id} not found` });
     }
 
-    // Find the discount type to get discount amount
-    const subDiscountType = await SubDiscountType.findOne({
-      where: { sub_discount_type_id },
-    });
+    // Calculate total discounted cases from all items
+    const totalDiscountedCases = discountItems.reduce(
+      (sum, item) => sum + item.discounted_cases,
+      0
+    );
 
-    if (!subDiscountType) {
-      return res.status(404).json({
-        message: `SubDiscountType with id ${sub_discount_type_id} not found`,
-      });
-    }
-
-    // Check if discounted cases exceed max allowed
-    if (discounted_cases > shop.max_discounted_cases) {
+    // Check if total discounted cases exceed max allowed
+    if (totalDiscountedCases > shop.max_discounted_cases) {
       return res.status(400).json({
-        message: `Discounted cases (${discounted_cases}) exceed maximum allowed (${shop.max_discounted_cases})`,
+        message: `Total discounted cases (${totalDiscountedCases}) exceed maximum allowed (${shop.max_discounted_cases})`,
       });
     }
 
-    // Calculate total discount
-    const total_discount = discounted_cases * subDiscountType.discount_amount;
+    // Check monthly limit (assuming this is part of your business logic)
+    // Get current month's start and end dates
+    const currentDate = new Date(selling_date);
+    const startOfMonth = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      1
+    );
+    const endOfMonth = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth() + 1,
+      0,
+      23,
+      59,
+      59
+    );
 
-    const newDiscount = await Discount.create({
-      shop_id,
-      selling_date,
-      lorry_id,
-      sub_discount_type_id,
-      discounted_cases,
-      product_id,
-      invoice_number,
-      total_discount,
+    // Get existing discounts for this shop in current month
+    const existingDiscounts = await Discount.findAll({
+      where: {
+        shop_id,
+        selling_date: {
+          [db.Sequelize.Op.between]: [startOfMonth, endOfMonth],
+        },
+      },
     });
 
-    // Fetch the complete discount object with associations
-    const completeDiscount = await Discount.findOne({
-      where: { discount_id: newDiscount.discount_id },
-      include: [
-        {
-          model: db.Shop,
-          as: "shop",
-        },
-        {
-          model: db.Lorry,
-          as: "lorry",
-        },
-        {
-          model: db.SubDiscountType,
-          as: "subDiscountType",
-        },
-        {
-          model: db.Product,
-          as: "product",
-        },
-      ],
-    });
+    const existingDiscountedCases = existingDiscounts.reduce(
+      (sum, discount) => sum + discount.discounted_cases,
+      0
+    );
 
-    res.status(201).json(completeDiscount);
+    if (
+      existingDiscountedCases + totalDiscountedCases >
+      shop.max_discounted_cases
+    ) {
+      return res.status(400).json({
+        message: `Adding ${totalDiscountedCases} cases would exceed monthly limit. Already used: ${existingDiscountedCases}, Maximum: ${shop.max_discounted_cases}`,
+      });
+    }
+
+    // Process each discount item
+    const createdDiscounts = [];
+    const errors = [];
+
+    for (const item of discountItems) {
+      const { sub_discount_type_id, discounted_cases } = item;
+
+      try {
+        // Find the discount value for this shop and sub-discount type
+        const shopDiscountValue = await db.ShopDiscountValue.findOne({
+          where: {
+            shop_id,
+            sub_discount_type_id,
+          },
+        });
+
+        if (!shopDiscountValue) {
+          errors.push(
+            `Discount value for shop ${shop_id} and sub-discount type ${sub_discount_type_id} not found`
+          );
+          continue;
+        }
+
+        // Calculate total discount
+        const total_discount =
+          discounted_cases * shopDiscountValue.discount_value;
+
+        // Create the discount record
+        const newDiscount = await Discount.create({
+          shop_id,
+          selling_date,
+          lorry_id,
+          sub_discount_type_id,
+          discounted_cases,
+          invoice_number,
+          total_discount,
+        });
+
+        createdDiscounts.push(newDiscount);
+      } catch (error) {
+        errors.push(
+          `Error processing discount item ${sub_discount_type_id}: ${error.message}`
+        );
+      }
+    }
+
+    // Handle response based on results
+    if (errors.length > 0 && createdDiscounts.length === 0) {
+      // If all items failed, return an error
+      return res.status(400).json({
+        message: "Failed to create any discount items",
+        errors,
+      });
+    } else if (errors.length > 0) {
+      // If some items succeeded and some failed
+      return res.status(207).json({
+        message: "Some discount items were created with errors",
+        created: createdDiscounts.length,
+        total: discountItems.length,
+        errors,
+      });
+    }
+
+    // If all succeeded, return success
+    return res.status(201).json({
+      message: "All discount items created successfully",
+      count: createdDiscounts.length,
+      discounts: createdDiscounts,
+    });
   } catch (error) {
     res.status(500).json({
       error: error.message,
-      message: "Failed to create discount",
+      message: "Failed to create discounts",
     });
   }
 };
@@ -162,14 +230,18 @@ exports.updateDiscount = async (req, res) => {
       lorry_id,
       sub_discount_type_id,
       discounted_cases,
-      product_id,
+      // product_id removed as it's no longer in the diagram
       invoice_number,
     } = req.body;
 
     let updateData = { ...req.body };
 
     // If we're updating discount-related fields, recalculate total_discount
-    if (discounted_cases !== undefined || sub_discount_type_id !== undefined) {
+    if (
+      discounted_cases !== undefined ||
+      sub_discount_type_id !== undefined ||
+      shop_id !== undefined
+    ) {
       // Get current discount record
       const currentDiscount = await Discount.findOne({
         where: { discount_id: id },
@@ -181,18 +253,22 @@ exports.updateDiscount = async (req, res) => {
           .json({ message: `Discount with id ${id} not found` });
       }
 
-      // Determine which sub_discount_type_id to use
+      // Determine which shop_id and sub_discount_type_id to use
+      const shopId = shop_id || currentDiscount.shop_id;
       const typeId =
         sub_discount_type_id || currentDiscount.sub_discount_type_id;
 
-      // Find the discount type to get discount amount
-      const subDiscountType = await SubDiscountType.findOne({
-        where: { sub_discount_type_id: typeId },
+      // Find the discount value from shop_discount_values
+      const shopDiscountValue = await db.ShopDiscountValues.findOne({
+        where: {
+          shop_id: shopId,
+          sub_discount_type_id: typeId,
+        },
       });
 
-      if (!subDiscountType) {
+      if (!shopDiscountValue) {
         return res.status(404).json({
-          message: `SubDiscountType with id ${typeId} not found`,
+          message: `Discount value for shop ${shopId} and sub-discount type ${typeId} not found`,
         });
       }
 
@@ -218,8 +294,8 @@ exports.updateDiscount = async (req, res) => {
         }
       }
 
-      // Calculate new total discount
-      updateData.total_discount = cases * subDiscountType.discount_amount;
+      // Calculate new total discount using shop_discount_values
+      updateData.total_discount = cases * shopDiscountValue.discount_value;
     }
 
     const [updated] = await Discount.update(updateData, {
@@ -242,10 +318,7 @@ exports.updateDiscount = async (req, res) => {
             model: db.SubDiscountType,
             as: "subDiscountType",
           },
-          {
-            model: db.Product,
-            as: "product",
-          },
+          // Product association has been removed from the diagram
         ],
       });
       return res.status(200).json(updatedDiscount);
@@ -290,10 +363,7 @@ exports.getDiscountsByShop = async (req, res) => {
           model: db.SubDiscountType,
           as: "subDiscountType",
         },
-        {
-          model: db.Product,
-          as: "product",
-        },
+        // Product association has been removed from the diagram
       ],
     });
     res.status(200).json(discounts);
@@ -325,10 +395,56 @@ exports.getDiscountsByDateRange = async (req, res) => {
           model: db.SubDiscountType,
           as: "subDiscountType",
         },
-        {
-          model: db.Product,
-          as: "product",
+        // Product association has been removed from the diagram
+      ],
+    });
+
+    res.status(200).json(discounts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get discounts by shop and current month
+exports.getDiscountsByShopAndCurrentMonth = async (req, res) => {
+  try {
+    const { shopId } = req.params;
+    const currentMonth = await db.CocaColaMonth.findOne({
+      where: {
+        start_date: {
+          [Op.lte]: new Date(),
         },
+        end_date: {
+          [Op.gte]: new Date(),
+        },
+      },
+    });
+
+    if (!currentMonth) {
+      return res.status(404).json({ message: "No current month found" });
+    }
+
+    const discounts = await Discount.findAll({
+      where: {
+        shop_id: shopId,
+        selling_date: {
+          [Op.between]: [currentMonth.start_date, currentMonth.end_date],
+        },
+      },
+      include: [
+        {
+          model: db.Shop,
+          as: "shop",
+        },
+        {
+          model: db.Lorry,
+          as: "lorry",
+        },
+        {
+          model: db.SubDiscountType,
+          as: "subDiscountType",
+        },
+        // Product association has been removed from the diagram
       ],
     });
 
