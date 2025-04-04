@@ -24,6 +24,21 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
     },
   ]);
 
+  // Size order map for consistent sorting
+  const sizeOrderMap = {
+    "175 mL": 1,
+    "250 mL": 4,
+    "300 mL": 2,
+    "355 mL": 9,
+    "400 mL": 5,
+    "500 mL": 10,
+    "750 mL": 3,
+    "1 L": 11,
+    "1050 mL": 6,
+    "1.5 L": 7,
+    "2 L": 8,
+  };
+
   // Form state
   const [formData, setFormData] = useState({
     lorry_id: "",
@@ -150,6 +165,13 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                 bottles_loaded: detail.bottles_loaded,
               })
             );
+
+            // Sort items by size using the size order map
+            loadedItems.sort((a, b) => {
+              const orderA = sizeOrderMap[a.product_size] || 999;
+              const orderB = sizeOrderMap[b.product_size] || 999;
+              return orderA - orderB;
+            });
 
             setUnloadingItems(loadedItems);
           }
@@ -349,6 +371,11 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                   <tbody>
                     {unloadingItems
                       .filter((item) => item.product_id)
+                      .sort((a, b) => {
+                        const orderA = sizeOrderMap[a.product_size] || 999;
+                        const orderB = sizeOrderMap[b.product_size] || 999;
+                        return orderA - orderB;
+                      })
                       .map((item, index) => (
                         <tr
                           key={`${item.product_id}-${index}`}
@@ -561,6 +588,11 @@ const AddNewUnloadingForm = ({ onUnloadingAdded }) => {
                 {unloadingItems.length > 0 ? (
                   unloadingItems
                     .filter((item) => item.product_id)
+                    .sort((a, b) => {
+                      const orderA = sizeOrderMap[a.product_size] || 999;
+                      const orderB = sizeOrderMap[b.product_size] || 999;
+                      return orderA - orderB;
+                    })
                     .map((item, index) => (
                       <tr
                         key={index}
