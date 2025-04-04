@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import logo from "../assets/logo_icon.png";
+import NotificationDropdown from "./Notification/NotificationDropdown";
 import {
   BellIcon,
   PencilIcon,
@@ -12,14 +13,19 @@ import {
   TagIcon,
 } from "@heroicons/react/24/outline";
 
-const Header = () => {
+const Header = ({ user, onLogout }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const menuRef = useRef(null);
+  const notificationRef = useRef(null);
 
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setIsMenuOpen(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setIsNotificationOpen(false);
       }
     }
 
@@ -27,7 +33,7 @@ const Header = () => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [menuRef]);
+  }, [menuRef, notificationRef]);
 
   const navItems = [
     {
@@ -151,15 +157,33 @@ const Header = () => {
               </div>
             )}
           </div>
-          <button className="p-2 text-gray-600 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors duration-150">
-            <BellIcon className="h-6 w-6" />
-          </button>
+          <div ref={notificationRef} className="relative">
+            <button 
+              className="p-2 text-gray-600 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors duration-150"
+              onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+            >
+              <BellIcon className="h-6 w-6" />
+            </button>
+            {isNotificationOpen && (
+              <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-10 overflow-hidden border border-gray-100">
+                <NotificationDropdown onClose={() => setIsNotificationOpen(false)} />
+              </div>
+            )}
+          </div>
           <button className="p-2 text-gray-600 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors duration-150">
             <PencilIcon className="h-6 w-6" />
           </button>
           <button className="h-9 w-9 rounded-full bg-gradient-to-r from-gray-500 to-gray-600 text-white flex items-center justify-center hover:from-gray-600 hover:to-gray-700 transition-colors duration-150 shadow-sm">
             <UserIcon className="h-5 w-5" />
           </button>
+          {user && onLogout && (
+            <button 
+              onClick={onLogout}
+              className="ml-2 px-3 py-1 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors duration-150"
+            >
+              Logout
+            </button>
+          )}
         </div>
       </div>
     </header>

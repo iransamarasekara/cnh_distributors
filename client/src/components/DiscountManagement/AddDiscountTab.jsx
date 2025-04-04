@@ -127,7 +127,7 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
 
             // Calculate available cases
             const usedCases = discountsResponse.data.reduce(
-              (total, discount) => total + discount.discounted_cases,
+              (total, discount) => total + parseInt(discount.discounted_cases),
               0
             );
 
@@ -166,9 +166,9 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
     const newDiscounts = [];
 
     for (const [typeId, casesValue] of Object.entries(discountInputs)) {
-      if (casesValue && parseInt(casesValue) > 0) {
+      if (casesValue && parseFloat(casesValue) > 0) {
         hasCases = true;
-        const casesNum = parseInt(casesValue);
+        const casesNum = parseFloat(casesValue);
         totalCases += casesNum;
 
         // Find the discount details
@@ -213,7 +213,7 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
   // Remove a discount item
   const removeDiscountItem = (index) => {
     const updatedDiscounts = [...addedDiscounts];
-    const removedCases = updatedDiscounts[index].discounted_cases;
+    const removedCases = parseFloat(updatedDiscounts[index].discounted_cases);
     updatedDiscounts.splice(index, 1);
 
     setAddedDiscounts(updatedDiscounts);
@@ -584,7 +584,7 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
                         <input
                           type="number"
                           min="0"
-                          step="1"
+                          step="0.1"
                           value={
                             discountInputs[value.sub_discount_type_id] || ""
                           }
@@ -674,7 +674,7 @@ const AddDiscountTab = ({ shops, lorries, onAddDiscount }) => {
                           Total
                         </td>
                         <td className="px-4 py-2 text-sm font-medium text-right">
-                          {totalDiscountedCases}
+                          {totalDiscountedCases.toFixed(1)}
                         </td>
                         <td className="px-4 py-2 text-sm font-medium text-right">
                           LKR{" "}

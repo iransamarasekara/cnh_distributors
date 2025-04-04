@@ -1,5 +1,6 @@
 import React, { useContext, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { NotificationProvider } from "./components/Notification/NotificationContext";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Dashboard from "./pages/Dashboard";
@@ -11,7 +12,6 @@ import InventoryManagementPage from "./pages/InventoryManagementPage";
 import LoadingManagementPage from "./pages/LoadingManagementPage";
 import InventoryReportsPage from "./pages/InventoryReportsPage";
 import ManagementPage from "./pages/ManagementPage";
-import DiscountPage from "./pages/DiscountManagementPage";
 import DiscountManagementPage from "./pages/DiscountManagementPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import LoadingComponent from "./components/LoadingComponent";
@@ -51,93 +51,95 @@ const AppLayout = ({ children }) => {
 
 const App = () => {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={<LoginPage />} />
+    <NotificationProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<LoginPage />} />
 
-          {/* Protected routes with layout */}
-          <Route>
-            <Route element={<ProtectedRoute requiredRoles={["admin"]} />}>
+            {/* Protected routes with layout */}
+            <Route>
+              <Route element={<ProtectedRoute requiredRoles={["admin"]} />}>
+                <Route
+                  path="/dashboard"
+                  element={
+                    <AppLayout>
+                      <Dashboard />
+                    </AppLayout>
+                  }
+                />
+              </Route>
+              <Route element={<ProtectedRoute requiredRoles={["admin"]} />}>
+                <Route
+                  path="/inventory-management"
+                  element={
+                    <AppLayout>
+                      <InventoryManagementPage />
+                    </AppLayout>
+                  }
+                />
+              </Route>
               <Route
-                path="/dashboard"
+                element={<ProtectedRoute requiredRoles={["admin", "loader"]} />}
+              >
+                <Route
+                  path="/loading-management"
+                  element={
+                    <AppLayout>
+                      <LoadingManagementPage />
+                    </AppLayout>
+                  }
+                />
+              </Route>
+              <Route element={<ProtectedRoute requiredRoles={["admin"]} />}>
+                <Route
+                  path="/discounts"
+                  element={
+                    <AppLayout>
+                      <DiscountManagementPage />
+                    </AppLayout>
+                  }
+                />
+              </Route>
+              <Route element={<ProtectedRoute requiredRoles={["admin"]} />}>
+                <Route
+                  path="/reports"
+                  element={
+                    <AppLayout>
+                      <InventoryReportsPage />
+                    </AppLayout>
+                  }
+                />
+              </Route>
+              <Route element={<ProtectedRoute requiredRoles={["admin"]} />}>
+                <Route
+                  path="/manage"
+                  element={
+                    <AppLayout>
+                      <ManagementPage />
+                    </AppLayout>
+                  }
+                />
+              </Route>
+              <Route
+                path="/unauthorized"
                 element={
                   <AppLayout>
-                    <Dashboard />
+                    <UnauthorizedPage />
                   </AppLayout>
                 }
               />
+              {/* Add more protected routes here */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
             </Route>
-            <Route element={<ProtectedRoute requiredRoles={["admin"]} />}>
-              <Route
-                path="/inventory-management"
-                element={
-                  <AppLayout>
-                    <InventoryManagementPage />
-                  </AppLayout>
-                }
-              />
-            </Route>
-            <Route
-              element={<ProtectedRoute requiredRoles={["admin", "loader"]} />}
-            >
-              <Route
-                path="/loading-management"
-                element={
-                  <AppLayout>
-                    <LoadingManagementPage />
-                  </AppLayout>
-                }
-              />
-            </Route>
-            <Route element={<ProtectedRoute requiredRoles={["admin"]} />}>
-              <Route
-                path="/discounts"
-                element={
-                  <AppLayout>
-                    <DiscountManagementPage />
-                  </AppLayout>
-                }
-              />
-            </Route>
-            <Route element={<ProtectedRoute requiredRoles={["admin"]} />}>
-              <Route
-                path="/reports"
-                element={
-                  <AppLayout>
-                    <InventoryReportsPage />
-                  </AppLayout>
-                }
-              />
-            </Route>
-            <Route element={<ProtectedRoute requiredRoles={["admin"]} />}>
-              <Route
-                path="/manage"
-                element={
-                  <AppLayout>
-                    <ManagementPage />
-                  </AppLayout>
-                }
-              />
-            </Route>
-            <Route
-              path="/unauthorized"
-              element={
-                <AppLayout>
-                  <UnauthorizedPage />
-                </AppLayout>
-              }
-            />
-            {/* Add more protected routes here */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          </Route>
 
-          {/* Not found route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+            {/* Not found route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </NotificationProvider>
   );
 };
 
